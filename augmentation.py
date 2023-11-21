@@ -20,6 +20,8 @@ image_index = 0
 save_folder = './results'
 os.makedirs(save_folder, exist_ok = True)
 
+gamma_list = [1, 1.5, 2]
+
 for item in image_list:
     print(item)
 
@@ -35,7 +37,7 @@ for item in image_list:
         exit()
 
     img_HSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV_FULL)
-    # print(img_yuv[0].shape)
+
     equalized_V = cv2.equalizeHist(img_HSV[:,:,2])
     img_HSV[:,:,2] = equalized_V
 
@@ -44,33 +46,24 @@ for item in image_list:
     # Convert the image to float32
     image_float = equalized_image.astype(np.float32) / 255.0
 
-    # Apply gamma correction
-    gamma = 1.5  # You can adjust the gamma value as needed
-    gamma_corrected = np.power(image_float, gamma)
-
-    # Convert back to uint8
-    gamma_corrected = (gamma_corrected * 255).astype(np.uint8)
-
-    # # Convert the image to float32
-    # image_float = image.astype(np.float32) / 255.0
-
-    # # Convert back to uint8
-    # gamma_corrected = gammaCorrection(image, 0.8)
-
-    # Display the original and equalized images using matplotlib
-    # plt.figure(figsize=(10, 5))
     my_dpi = 20
-    plt.figure(figsize=(4608 / my_dpi, 4544 / my_dpi), dpi=my_dpi)
-
-    plt.subplot(1, 2, 1)
+    plt.figure(figsize=(4608*4/ my_dpi, 4544 / my_dpi), dpi=my_dpi)
+    plt.subplot(1, len(gamma_list)+1, 1)
     plt.title('Original Image')
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     plt.axis('off')
 
-    plt.subplot(1, 2, 2)
-    plt.title('Processed Image')
-    plt.imshow(cv2.cvtColor(gamma_corrected, cv2.COLOR_BGR2RGB))
-    plt.axis('off')
+    for i, gamma in enumerate(gamma_list):
+        # Apply gamma correction
+        gamma_corrected = np.power(image_float, gamma)
+
+        # Convert back to uint8
+        gamma_corrected = (gamma_corrected * 255).astype(np.uint8)
+
+        plt.subplot(1, len(gamma_list)+1, i+2)
+        plt.title(f'Gamma:{gamma}')
+        plt.imshow(cv2.cvtColor(gamma_corrected, cv2.COLOR_BGR2RGB))
+        plt.axis('off')
 
     plt.savefig(f'{save_folder}/{digital_gain_factor}_{base_name}.png')
 
