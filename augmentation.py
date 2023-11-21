@@ -36,7 +36,24 @@ for item in image_list:
         print("Error: Could not read the image.")
         exit()
 
-    img_HSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV_FULL)
+    # Get the dimensions of the image
+    height, width, _ = image.shape
+
+    # Create a black mask with the same dimensions as the image
+    mask = np.zeros((height, width), dtype=np.uint8)
+
+    # Define the center and axes length of the ellipse
+    center = (2200, 2300)
+    axesLength = (2300, 2400)
+
+    # Draw the circle on the mask
+    cv2.ellipse(mask, center, axesLength, 0, 0, 360, (255, 255, 255), thickness=cv2.FILLED)
+
+    # Use the mask to crop the image
+    crop_inner = cv2.bitwise_and(image, image, mask=mask)
+    crop_outer = cv2.bitwise_and(image, image, mask=cv2.bitwise_not(mask))
+
+    img_HSV = cv2.cvtColor(crop_inner, cv2.COLOR_BGR2HSV_FULL)
 
     equalized_V = cv2.equalizeHist(img_HSV[:,:,2])
     img_HSV[:,:,2] = equalized_V
@@ -60,9 +77,11 @@ for item in image_list:
         # Convert back to uint8
         gamma_corrected = (gamma_corrected * 255).astype(np.uint8)
 
+        final_image = cv2.addWeighted(gamma_corrected, 1, crop_outer, 1, 0)
+
         plt.subplot(1, len(gamma_list)+1, i+2)
         plt.title(f'Gamma:{gamma}')
-        plt.imshow(cv2.cvtColor(gamma_corrected, cv2.COLOR_BGR2RGB))
+        plt.imshow(cv2.cvtColor(final_image, cv2.COLOR_BGR2RGB))
         plt.axis('off')
 
     plt.savefig(f'{save_folder}/{digital_gain_factor}_{base_name}.png')
