@@ -10,6 +10,8 @@ class Capture:
     BlockArray_frames = [32, 94, 156, 188]
     BlockArray_crops_top_pixels = [16, 40, 45, 20]
     BlockArray_crops_bottom_pixels = [40, 40, 35, 36]
+    # BlockArray_crops_top_pixels = [0, 0, 0, 0]
+    # BlockArray_crops_bottom_pixels = [0, 0, 0, 0]
     class Strip:
         Width=4608
         Height=96
@@ -59,49 +61,91 @@ def imgFusion(img1, img2, overlap, left_right=True):
     return img_new
 
 
-def channelFusion(image_list):
-    for i in range(len(image_list)-1):
+def channelFusion(image_list, length, overlap):
+    for i in range(length-1):
         print(i)
-        if i <= Capture.BlockArray_frames[0]:
-            crop_top = Capture.BlockArray_crops_top_pixels[3]
-            crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
-        elif i <= Capture.BlockArray_frames[1]:
-            crop_top = Capture.BlockArray_crops_top_pixels[2]
-            crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
-        elif i <= Capture.BlockArray_frames[2]:
-            crop_top = Capture.BlockArray_crops_top_pixels[1]
-            crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+        if i < Capture.BlockArray_frames[0]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[3]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[3]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
+        elif i == Capture.BlockArray_frames[0]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[3]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[2]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+        elif i < Capture.BlockArray_frames[1]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[2]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[2]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+        elif i == Capture.BlockArray_frames[1]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[2]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[1]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+        elif i < Capture.BlockArray_frames[2]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[1]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[1]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+        elif i == Capture.BlockArray_frames[2]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[1]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[0]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
         else:
-            crop_top = Capture.BlockArray_crops_top_pixels[0]
-            crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
+            up_crop_top = Capture.BlockArray_crops_top_pixels[0]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[0]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
 
-        OVERLAP = 32
+        if overlap == 0:
+            if i == 0:
+                # Read the BMP strip
+                img1 = cv2.imread(image_list[i + 1], cv2.IMREAD_GRAYSCALE)
+                img2 = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
 
-        if i == 0:
-            # Read the BMP strip
-            img1 = cv2.imread(image_list[i+1], cv2.IMREAD_GRAYSCALE)
-            img2 = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
+                img1 = img1[:Capture.Strip.Height - up_crop_bottom, :]
+                img2 = img2[down_crop_top:Capture.Strip.Height - down_crop_bottom, :]
 
-            img1 = img1[:Capture.Strip.Height - crop_bottom+int(OVERLAP/2), :]
-            img2 = img2[crop_top-int(OVERLAP/2):Capture.Strip.Height - crop_bottom+int(OVERLAP/2), :]
+                img_down = cv2.vconcat([img1, img2])
 
-            img1 = (img1 - img1.min())/img1.ptp()
-            img2 = (img2 - img2.min())/img2.ptp()
-            img_new = imgFusion(img1,img2,overlap=OVERLAP,left_right=False)
-            img_new = np.uint16(img_new*65535)
+            else:
+                img_up = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
+                img_up = img_up[:Capture.Strip.Height - up_crop_bottom, :]
+
+                img_down = img_down[down_crop_top:, :]
+
+                img_down = cv2.vconcat([img_up, img_down])
+
 
         else:
-            img1 = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
-            img1 = img1[:Capture.Strip.Height - crop_bottom + int(OVERLAP / 2), :]
+            if i == 0:
+                # Read the BMP strip
+                img1 = cv2.imread(image_list[i+1], cv2.IMREAD_GRAYSCALE)
+                img2 = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
 
-            img_new = img_new[crop_top - int(OVERLAP / 2):, :]
-            img1 = (img1 - img1.min()) / img1.ptp()
-            img_new = (img_new - img_new.min())/img_new.ptp()
+                img1 = img1[:Capture.Strip.Height - up_crop_bottom+int(overlap/2), :]
+                img2 = img2[down_crop_top-int(overlap/2):Capture.Strip.Height - down_crop_bottom, :]
 
-            img_new = imgFusion(img1, img_new, overlap=OVERLAP, left_right=False)
-            img_new = np.uint16(img_new * 65535)
+                img1 = (img1 - img1.min())/img1.ptp()
+                img2 = (img2 - img2.min())/img2.ptp()
+                img_down = imgFusion(img1,img2,overlap=overlap,left_right=False)
+                img_down = np.uint16(img_down*65535)
 
-    return img_new
+            else:
+                img1 = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
+                img1 = img1[:Capture.Strip.Height - up_crop_bottom + int(overlap / 2), :]
+
+                img_down = img_down[down_crop_top - int(overlap / 2):, :]
+                img1 = (img1 - img1.min()) / img1.ptp()
+                img_down = (img_down - img_down.min())/img_down.ptp()
+
+                img_down = imgFusion(img1, img_down, overlap=overlap, left_right=False)
+                img_down = np.uint16(img_down * 65535)
+
+    return img_down
 
 path = r'..\Dataset\strip'
 folder_list = glob.glob(f'{path}/*')
@@ -115,9 +159,12 @@ for folder in folder_list[:1]:
     G_list = image_list[ScansPerFrame:ScansPerFrame*2]
     B_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
 
-    R_fusion = channelFusion(R_list)
-    G_fusion = channelFusion(G_list)
-    B_fusion = channelFusion(B_list)
+    overlap = 0
+    length = len(R_list)
+
+    R_fusion = channelFusion(R_list, length, overlap)
+    G_fusion = channelFusion(G_list, length, overlap)
+    B_fusion = channelFusion(B_list, length, overlap)
     # print(R_fusion.shape, G_fusion.shape)
     # cv2.merge 实现图像通道的合并
     imgMerge = cv2.merge([B_fusion, G_fusion, R_fusion])
