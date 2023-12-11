@@ -24,7 +24,8 @@ def calWeight(d, k):
     '''
 
     x = np.arange(-d / 2, d / 2)
-    y = 1 / (1 + np.exp(-k * x))
+    # y = 1 / (1 + np.exp(-k * x)) #exponenital
+    y = x/d + 0.5 # linear
     return y
 
 
@@ -124,16 +125,19 @@ def channelFusion(image_list, length, overlap):
         else:
             if i == 0:
                 # Read the BMP strip
-                img1 = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
-                img2 = cv2.rotate(cv2.imread(image_list[i+1], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
+                img_up = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
 
-                img1 = img1[up_crop_top:Capture.Strip.Height - up_crop_bottom + int(overlap/2), :]
-                img2 = img2[down_crop_top - int(overlap / 2):, :]
+                img_up = img_up[up_crop_top:, :]
+            elif i == length-1:
+                img_up = img_up[:-(up_crop_bottom - int(overlap / 2)), :]
 
-                img1 = (img1 - img1.min())/img1.ptp()
-                img2 = (img2 - img2.min())/img2.ptp()
-                img_up = imgFusion(img1,img2,overlap=overlap,left_right=False)
-                img_up = np.uint16(img_up*65535)
+                img_down = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
+                img_down = img_down[down_crop_top - int(overlap / 2):-down_crop_bottom, :]
+
+                img_up = (img_up - img_up.min()) / img_up.ptp()
+                img_down = (img_down - img_down.min()) / img_down.ptp()
+                img_up = imgFusion(img_up, img_down, overlap=overlap, left_right=False)
+                img_up = np.uint16(img_up * 65535)
 
             else:
                 img_up = img_up[:-(up_crop_bottom - int(overlap / 2)), :]
@@ -141,9 +145,8 @@ def channelFusion(image_list, length, overlap):
                 img_down = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
                 img_down = img_down[down_crop_top - int(overlap / 2):, :]
 
+                img_up = (img_up - img_up.min()) / img_up.ptp()
                 img_down = (img_down - img_down.min()) / img_down.ptp()
-                img_up = (img_up - img_up.min())/img_up.ptp()
-
                 img_up = imgFusion(img_up, img_down, overlap=overlap, left_right=False)
                 img_up = np.uint16(img_up * 65535)
 
@@ -152,6 +155,7 @@ def channelFusion(image_list, length, overlap):
 path = r'..\Dataset\strip'
 folder_list = glob.glob(f'{path}/*')
 
+overlap = 20
 for folder in folder_list[:1]:
     print(folder)
     image_list = glob.glob(f'{folder}/*.bmp')
@@ -161,8 +165,8 @@ for folder in folder_list[:1]:
     G_list = image_list[ScansPerFrame:ScansPerFrame*2]
     B_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
 
-    overlap = 0
-    length = len(R_list)
+    # length = len(R_list)
+    length = 94
 
     R_fusion = channelFusion(R_list, length, overlap)
     G_fusion = channelFusion(G_list, length, overlap)
@@ -173,7 +177,7 @@ for folder in folder_list[:1]:
 
     # print(R_fusion.shape,G_fusion.shape,B_fusion.shape)
 
-cv2.imwrite(r'.\fusion.png', imgMerge)
+cv2.imwrite(f'./blend-overlap-{overlap}.png', imgMerge)
 # cv2.imshow('Stitched Image', img_new)
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
