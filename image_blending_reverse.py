@@ -7,7 +7,7 @@ import numpy as np
 class Capture:
     ScansPerFrame=188
     Blocks = 4
-    BlockArray_frames = [32-1, 94-1, 156-1, 188-1]
+    BlockArray_frames = [32, 94, 156, 188]
     BlockArray_crops_top_pixels = [16, 40, 45, 20]
     BlockArray_crops_bottom_pixels = [40, 40, 35, 36]
     # BlockArray_crops_top_pixels = [0, 0, 0, 0]
@@ -62,34 +62,34 @@ def imgFusion(img1, img2, overlap, left_right=True):
 
 
 def channelFusion(image_list, length, overlap):
-    for i in range(length-1):
+    for i in range(length):
         print(i)
-        if i < Capture.BlockArray_frames[0]:
+        if i < Capture.BlockArray_frames[0]-1:
             up_crop_top = Capture.BlockArray_crops_top_pixels[0]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
             down_crop_top = Capture.BlockArray_crops_top_pixels[0]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
-        elif i == Capture.BlockArray_frames[0]:
+        elif i == Capture.BlockArray_frames[0]-1:
             up_crop_top = Capture.BlockArray_crops_top_pixels[0]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
             down_crop_top = Capture.BlockArray_crops_top_pixels[1]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
-        elif i < Capture.BlockArray_frames[1]:
+        elif i < Capture.BlockArray_frames[1]-1:
             up_crop_top = Capture.BlockArray_crops_top_pixels[1]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
             down_crop_top = Capture.BlockArray_crops_top_pixels[1]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
-        elif i == Capture.BlockArray_frames[1]:
+        elif i == Capture.BlockArray_frames[1]-1:
             up_crop_top = Capture.BlockArray_crops_top_pixels[1]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
             down_crop_top = Capture.BlockArray_crops_top_pixels[2]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
-        elif i < Capture.BlockArray_frames[2]:
+        elif i < Capture.BlockArray_frames[2]-1:
             up_crop_top = Capture.BlockArray_crops_top_pixels[2]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
             down_crop_top = Capture.BlockArray_crops_top_pixels[2]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
-        elif i == Capture.BlockArray_frames[2]:
+        elif i == Capture.BlockArray_frames[2]-1:
             up_crop_top = Capture.BlockArray_crops_top_pixels[2]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
             down_crop_top = Capture.BlockArray_crops_top_pixels[3]
@@ -103,13 +103,16 @@ def channelFusion(image_list, length, overlap):
         if overlap == 0:
             if i == 0:
                 # Read the BMP strip
-                img1 = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
-                img2 = cv2.rotate(cv2.imread(image_list[i+1], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
+                img_up = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
 
-                img1 = img1[up_crop_top:Capture.Strip.Height - up_crop_bottom, :]
-                img2 = img2[down_crop_top:, :]
+                img_up = img_up[up_crop_top:, :]
+            elif i == length-1:
+                img_up = img_up[:-up_crop_bottom, :]
 
-                img_up = cv2.vconcat([img1, img2])
+                img_down = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
+                img_down = img_down[down_crop_top:-down_crop_bottom, :]
+
+                img_up = cv2.vconcat([img_up, img_down])
             else:
                 img_up = img_up[:-up_crop_bottom, :]
 
@@ -117,6 +120,7 @@ def channelFusion(image_list, length, overlap):
                 img_down = img_down[down_crop_top:, :]
 
                 img_up = cv2.vconcat([img_up, img_down])
+
         else:
             if i == 0:
                 # Read the BMP strip
