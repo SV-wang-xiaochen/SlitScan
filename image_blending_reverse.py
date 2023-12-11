@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 
 
-extend_top = 1
-extend_bottom = 10
+extend_top = 5
+extend_bottom = 20
 
 # class Capture:
 #     ScansPerFrame=188
@@ -27,6 +27,10 @@ class Capture:
     BlockArray_crops_bottom_pixels = [56, 60, 55, 42]
     BlockArray_overlap_top_pixels = [x-extend_top for x in BlockArray_crops_top_pixels]
     BlockArray_overlap_bottom_pixels = [x-extend_bottom for x in BlockArray_crops_bottom_pixels]
+    # BlockArray_overlap_top_pixels = [6, 20, 25, 20]
+    # BlockArray_overlap_bottom_pixels = [56-1, 60-1, 55-1, 42-1]
+    # BlockArray_overlap_top_pixels = [0, 0, 0, 0]
+    # BlockArray_overlap_bottom_pixels = [0, 0, 0, 0]
     class Strip:
         Width=4608
         Height=96
@@ -44,7 +48,7 @@ def calWeight(overlap_top, overlap_bottom, k):
     return y
 
 
-def imgFusion(img1, img2, overlap_top, overlap_bottom, left_right=True):
+def imgFusion(img1, img2, overlap_top, overlap_bottom, IF_BOTTOM):
     '''
     图像加权融合
     :param img1:
@@ -71,14 +75,24 @@ def imgFusion(img1, img2, overlap_top, overlap_bottom, left_right=True):
     print('img1.shape, img2.shape')
     print(img1.shape, img2.shape)
 
-    img_new = np.zeros((row1+row2 - overlap_top - overlap_bottom, col))
-    print('img_new[:row1, :].shape, img1.shape')
-    print(img_new[:row1, :].shape,img1.shape )
-    img_new[:row1, :] = img1
-    w = np.reshape(w, (overlap_top+overlap_bottom, 1))
-    w_expand = np.tile(w, (1, col))
-    img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * img1[row1 - overlap_top - overlap_bottom:row1, :] + w_expand * img2[:(overlap_top+overlap_bottom), :]
-    img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
+    if not IF_BOTTOM:
+        img_new = np.zeros((row1+row2 - overlap_top - overlap_bottom, col))
+        print('img_new[:row1, :].shape, img1.shape')
+        print(img_new[:row1, :].shape,img1.shape )
+        img_new[:row1, :] = img1
+        w = np.reshape(w, (overlap_top+overlap_bottom, 1))
+        w_expand = np.tile(w, (1, col))
+        img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * img1[row1 - overlap_top - overlap_bottom:row1, :] + w_expand * img2[:(overlap_top+overlap_bottom), :]
+        img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
+    else:
+        img_new = np.zeros((row1+row2 - overlap_top - overlap_bottom, col))
+        print('img_new[:row1, :].shape, img1.shape')
+        print(img_new[:row1, :].shape,img1.shape )
+        img_new[:row1, :] = img1
+        w = np.reshape(w, (overlap_top+overlap_bottom, 1))
+        w_expand = np.tile(w, (1, col))
+        img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * img1[row1 - overlap_top - overlap_bottom:row1, :] + w_expand * img2[:(overlap_top+overlap_bottom), :]
+        img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
 
     return img_new
 
@@ -168,17 +182,17 @@ def channelFusion(image_list, length):
                 print(-(up_crop_bottom - overlap_bottom))
                 img_down = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
                 # to fix, for the last strip
-                # if i == len(image_list)-1:
-                #     img_down = img_down[down_crop_top - overlap_top:-down_crop_bottom, :]
-                # else:
-                img_down = img_down[down_crop_top - overlap_top:, :]
+                if i == len(image_list)-1:
+                    img_down = img_down[down_crop_top - overlap_top:-down_crop_bottom, :]
+                else:
+                    img_down = img_down[down_crop_top - overlap_top:, :]
                 print(down_crop_top - overlap_top, -down_crop_bottom)
                 img_up = (img_up - img_up.min()) / img_up.ptp()
                 img_down = (img_down - img_down.min()) / img_down.ptp()
 
                 print('img_up.shape, img_down.shape')
                 print(img_up.shape, img_down.shape)
-                img_up = imgFusion(img_up, img_down, overlap_top=overlap_top, overlap_bottom=overlap_bottom, left_right=False)
+                img_up = imgFusion(img_up, img_down, overlap_top=overlap_top, overlap_bottom=overlap_bottom, IF_BOTTOM=True)
                 img_up = np.uint16(img_up * 65535)
 
             else:
@@ -191,7 +205,7 @@ def channelFusion(image_list, length):
                 img_down = (img_down - img_down.min()) / img_down.ptp()
                 print('img_up.shape, img_down.shape')
                 print(img_up.shape, img_down.shape)
-                img_up = imgFusion(img_up, img_down, overlap_top=overlap_top, overlap_bottom=overlap_bottom, left_right=False)
+                img_up = imgFusion(img_up, img_down, overlap_top=overlap_top, overlap_bottom=overlap_bottom, IF_BOTTOM=False)
                 img_up = np.uint16(img_up * 65535)
 
     return img_up
@@ -209,7 +223,7 @@ for folder in folder_list[2:3]:
     B_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
 
     length = len(R_list)
-    # length = 32
+    # length = 2
 
     R_fusion = channelFusion(R_list, length)
     G_fusion = channelFusion(G_list, length)
@@ -221,7 +235,8 @@ for folder in folder_list[2:3]:
     # print(R_fusion.shape,G_fusion.shape,B_fusion.shape)
 
 # cv2.imwrite(f'./blend-overlap-{overlap}.png', imgMerge)
-cv2.imwrite(f'./blend-extend-top-{extend_top}-bottom-{extend_bottom}.png', imgMerge)
+save_file_name = f'{Capture.BlockArray_overlap_top_pixels[0]}-{Capture.BlockArray_overlap_top_pixels[1]}-{Capture.BlockArray_overlap_top_pixels[2]}-{Capture.BlockArray_overlap_top_pixels[3]}-{Capture.BlockArray_overlap_bottom_pixels[0]}-{Capture.BlockArray_overlap_bottom_pixels[0]}-{Capture.BlockArray_overlap_bottom_pixels[0]}-{Capture.BlockArray_overlap_bottom_pixels[0]}'
+cv2.imwrite(f'./{save_file_name}.png', imgMerge)
 # cv2.imshow('Stitched Image', img_new)
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
