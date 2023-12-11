@@ -64,32 +64,32 @@ def imgFusion(img1, img2, overlap, left_right=True):
 def channelFusion(image_list, length, overlap):
     for i in range(length):
         print(i)
-        if i < Capture.BlockArray_frames[0]-1:
+        if i < Capture.BlockArray_frames[0]:
             up_crop_top = Capture.BlockArray_crops_top_pixels[0]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
             down_crop_top = Capture.BlockArray_crops_top_pixels[0]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
-        elif i == Capture.BlockArray_frames[0]-1:
+        elif i == Capture.BlockArray_frames[0]:
             up_crop_top = Capture.BlockArray_crops_top_pixels[0]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
             down_crop_top = Capture.BlockArray_crops_top_pixels[1]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
-        elif i < Capture.BlockArray_frames[1]-1:
+        elif i < Capture.BlockArray_frames[1]:
             up_crop_top = Capture.BlockArray_crops_top_pixels[1]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
             down_crop_top = Capture.BlockArray_crops_top_pixels[1]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
-        elif i == Capture.BlockArray_frames[1]-1:
+        elif i == Capture.BlockArray_frames[1]:
             up_crop_top = Capture.BlockArray_crops_top_pixels[1]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
             down_crop_top = Capture.BlockArray_crops_top_pixels[2]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
-        elif i < Capture.BlockArray_frames[2]-1:
+        elif i < Capture.BlockArray_frames[2]:
             up_crop_top = Capture.BlockArray_crops_top_pixels[2]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
             down_crop_top = Capture.BlockArray_crops_top_pixels[2]
             down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
-        elif i == Capture.BlockArray_frames[2]-1:
+        elif i == Capture.BlockArray_frames[2]:
             up_crop_top = Capture.BlockArray_crops_top_pixels[2]
             up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
             down_crop_top = Capture.BlockArray_crops_top_pixels[3]
