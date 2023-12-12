@@ -89,7 +89,7 @@ def imgFusion(img1, img2, overlap_top, overlap_bottom):
     return img_new
 
 
-def channelFusion(image_list, length):
+def channelBlend(image_list, length):
     for i in range(length):
         print(i)
         if i < Capture.BlockArray_frames[0]:
@@ -143,6 +143,7 @@ def channelFusion(image_list, length):
             overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[3]
 
         if (overlap_top+overlap_bottom) == 0:
+            print("Only concat. No blending.")
             if i == 0:
                 # Read the BMP strip
                 img_up = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
@@ -203,34 +204,133 @@ def channelFusion(image_list, length):
 
     return img_up
 
-path = r'..\Dataset\strip'
-folder_list = glob.glob(f'{path}/*')
 
-for folder in folder_list[3:4]:
-    print(folder)
-    image_list = glob.glob(f'{folder}/*.bmp')
-    ScansPerFrame = int(len(image_list)/3)
-    print(ScansPerFrame)
-    R_list = image_list[:ScansPerFrame]
-    G_list = image_list[ScansPerFrame:ScansPerFrame*2]
-    B_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
+def channelConcat(image_list, length):
+    for i in range(length):
+        print(i)
+        if i < Capture.BlockArray_frames[0]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[0]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[0]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
+            overlap_top = Capture.BlockArray_overlap_top_pixels[0]
+            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[0]
+        elif i == Capture.BlockArray_frames[0]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[0]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[1]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+            overlap_top = Capture.BlockArray_overlap_top_pixels[1]
+            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[0]
+        elif i < Capture.BlockArray_frames[1]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[1]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[1]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+            overlap_top = Capture.BlockArray_overlap_top_pixels[1]
+            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[1]
+        elif i == Capture.BlockArray_frames[1]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[1]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[2]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+            overlap_top = Capture.BlockArray_overlap_top_pixels[2]
+            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[1]
+        elif i < Capture.BlockArray_frames[2]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[2]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[2]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+            overlap_top = Capture.BlockArray_overlap_top_pixels[2]
+            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[2]
+        elif i == Capture.BlockArray_frames[2]:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[2]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[3]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
+            overlap_top = Capture.BlockArray_overlap_top_pixels[3]
+            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[2]
+        else:
+            up_crop_top = Capture.BlockArray_crops_top_pixels[3]
+            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
+            down_crop_top = Capture.BlockArray_crops_top_pixels[3]
+            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
+            overlap_top = Capture.BlockArray_overlap_top_pixels[3]
+            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[3]
 
-    length = len(R_list)
-    # length = 2
+        print("Only concat. No blending.")
+        if i == 0:
+            # Read the BMP strip
+            img_up = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
 
-    R_fusion = channelFusion(R_list, length)
-    G_fusion = channelFusion(G_list, length)
-    B_fusion = channelFusion(B_list, length)
-    # print(R_fusion.shape, G_fusion.shape)
-    # cv2.merge 实现图像通道的合并
-    imgMerge = cv2.merge([B_fusion, G_fusion, R_fusion])
+            img_up = img_up[up_crop_top:, :]
+        elif i == length - 1:
+            img_up = img_up[:-up_crop_bottom, :]
 
-    # print(R_fusion.shape,G_fusion.shape,B_fusion.shape)
+            img_down = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
+            img_down = img_down[down_crop_top:-down_crop_bottom, :]
 
-# cv2.imwrite(f'./blend-overlap-{overlap}.png', imgMerge)
-save_file_name = f'{Capture.BlockArray_overlap_top_pixels[0]}-{Capture.BlockArray_overlap_top_pixels[1]}-{Capture.BlockArray_overlap_top_pixels[2]}-{Capture.BlockArray_overlap_top_pixels[3]}-{Capture.BlockArray_overlap_bottom_pixels[0]}-{Capture.BlockArray_overlap_bottom_pixels[1]}-{Capture.BlockArray_overlap_bottom_pixels[2]}-{Capture.BlockArray_overlap_bottom_pixels[3]}'
-cv2.imwrite(f'./{save_file_name}.png', imgMerge)
-# cv2.imshow('Stitched Image', img_new)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+            img_up = cv2.vconcat([img_up, img_down])
+        else:
+            img_up = img_up[:-up_crop_bottom, :]
+
+            img_down = cv2.rotate(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), cv2.ROTATE_180)
+            img_down = img_down[down_crop_top:, :]
+
+            img_up = cv2.vconcat([img_up, img_down])
+
+    return img_up
+
+BLEND_ONLY_Y = True
+IMAGE_INDEX = 2
+if not BLEND_ONLY_Y:
+    path = f'../Dataset/strip_rgb'
+    folder_list = glob.glob(f'{path}/*')
+
+    for folder in folder_list[IMAGE_INDEX:IMAGE_INDEX+1]:
+        print(folder)
+        image_list = glob.glob(f'{folder}/*.bmp')
+        ScansPerFrame = int(len(image_list)/3)
+        print(ScansPerFrame)
+        R_list = image_list[:ScansPerFrame]
+        G_list = image_list[ScansPerFrame:ScansPerFrame*2]
+        B_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
+
+        length = len(R_list)
+        # length = 2
+
+        R_blend = channelBlend(R_list, length)
+        G_blend = channelBlend(G_list, length)
+        B_blend = channelBlend(B_list, length)
+        # print(R_fusion.shape, G_fusion.shape)
+        # cv2.merge 实现图像通道的合并
+        imgMerge = cv2.merge([B_blend, G_blend, R_blend])
+
+    save_file_name = f'RGB-{Capture.BlockArray_overlap_top_pixels[0]}-{Capture.BlockArray_overlap_top_pixels[1]}-{Capture.BlockArray_overlap_top_pixels[2]}-{Capture.BlockArray_overlap_top_pixels[3]}-{Capture.BlockArray_overlap_bottom_pixels[0]}-{Capture.BlockArray_overlap_bottom_pixels[1]}-{Capture.BlockArray_overlap_bottom_pixels[2]}-{Capture.BlockArray_overlap_bottom_pixels[3]}'
+    cv2.imwrite(f'./{save_file_name}.png', imgMerge)
+
+else:
+    path = f'../Dataset/strip_hsv'
+    folder_list = glob.glob(f'{path}/*')
+
+    for folder in folder_list[IMAGE_INDEX:IMAGE_INDEX+1]:
+        print(folder)
+        image_list = glob.glob(f'{folder}/*.png')
+        ScansPerFrame = int(len(image_list)/3)
+        print(ScansPerFrame)
+        H_list = image_list[:ScansPerFrame]
+        S_list = image_list[ScansPerFrame:ScansPerFrame*2]
+        V_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
+
+        length = len(V_list)
+        # length = 2
+
+        H_concat = channelConcat(H_list, length)
+        S_concat = channelConcat(S_list, length)
+        V_blend = channelBlend(V_list, length)
+
+        imgMerge = cv2.cvtColor(cv2.merge([H_concat, S_concat, V_blend]),cv2.COLOR_HSV2BGR)
+
+    save_file_name = f'HSV-{Capture.BlockArray_overlap_top_pixels[0]}-{Capture.BlockArray_overlap_top_pixels[1]}-{Capture.BlockArray_overlap_top_pixels[2]}-{Capture.BlockArray_overlap_top_pixels[3]}-{Capture.BlockArray_overlap_bottom_pixels[0]}-{Capture.BlockArray_overlap_bottom_pixels[1]}-{Capture.BlockArray_overlap_bottom_pixels[2]}-{Capture.BlockArray_overlap_bottom_pixels[3]}'
+    cv2.imwrite(f'./{save_file_name}.png', imgMerge)
 
