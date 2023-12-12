@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 
-extend_top = 5
+extend_top = 1
 extend_bottom = 20
 
 # class Capture:
@@ -25,10 +25,10 @@ class Capture:
     BlockArray_frames = [40, 104, 168, 208]
     BlockArray_crops_top_pixels = [6, 20, 25, 20]
     BlockArray_crops_bottom_pixels = [56, 60, 55, 42]
-    # BlockArray_overlap_top_pixels = [x-extend_top for x in BlockArray_crops_top_pixels]
-    # BlockArray_overlap_bottom_pixels = [x-extend_bottom for x in BlockArray_crops_bottom_pixels]
-    BlockArray_overlap_top_pixels = [6, 20, 25, 20]
-    BlockArray_overlap_bottom_pixels = [56-1, 60-1, 55-1, 42-1]
+    BlockArray_overlap_top_pixels = [x-extend_top for x in BlockArray_crops_top_pixels]
+    BlockArray_overlap_bottom_pixels = [x-extend_bottom for x in BlockArray_crops_bottom_pixels]
+    # BlockArray_overlap_top_pixels = [6, 20, 25, 20]
+    # BlockArray_overlap_bottom_pixels = [56-1, 60-1, 55-1, 42-1]
     # BlockArray_overlap_top_pixels = [0, 0, 0, 0]
     # BlockArray_overlap_bottom_pixels = [0, 0, 0, 0]
     class Strip:
@@ -185,7 +185,7 @@ def channelFusion(image_list, length):
                 print('img_up.shape, img_down.shape')
                 print(img_up.shape, img_down.shape)
                 img_up = imgFusion(img_up, img_down, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
-                img_up = np.uint16(img_up * 65535)
+                img_up = np.uint8(img_up * 255)
 
             else:
                 img_up = img_up[:-(up_crop_bottom - overlap_bottom), :]
@@ -199,14 +199,14 @@ def channelFusion(image_list, length):
                 print('img_up.shape, img_down.shape')
                 print(img_up.shape, img_down.shape)
                 img_up = imgFusion(img_up, img_down, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
-                img_up = np.uint16(img_up * 65535)
+                img_up = np.uint8(img_up * 255)
 
     return img_up
 
 path = r'..\Dataset\strip'
 folder_list = glob.glob(f'{path}/*')
 
-for folder in folder_list[2:3]:
+for folder in folder_list[3:4]:
     print(folder)
     image_list = glob.glob(f'{folder}/*.bmp')
     ScansPerFrame = int(len(image_list)/3)
