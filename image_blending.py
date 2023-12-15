@@ -2,6 +2,7 @@ import os
 import glob
 import cv2
 import numpy as np
+from hist_matching import hist_matching
 
 # Note that overlap_top must not be larger than the number of valid pixels which is 16 in the current setting
 extend_top = 5
@@ -26,12 +27,12 @@ extend_bottom = 20
 #     BlockArray_crops_top_pixels = [6, 20, 25, 20]
 #     BlockArray_crops_bottom_pixels = [56, 60, 55, 42]
 
-class Capture_General:
-    ScansPerFrame=208
-    Blocks = 4
-    BlockArray_frames = [40, 104, 168, 208]
-    BlockArray_crops_top_pixels = [12, 30, 25, 10]
-    BlockArray_crops_bottom_pixels = [50, 50, 55, 52]
+# class Capture_General:
+#     ScansPerFrame=208
+#     Blocks = 4
+#     BlockArray_frames = [40, 104, 168, 208]
+#     BlockArray_crops_top_pixels = [12, 30, 25, 10]
+#     BlockArray_crops_bottom_pixels = [50, 50, 55, 52]
 
 # class Capture_General:
 #     ScansPerFrame=298
@@ -40,12 +41,12 @@ class Capture_General:
 #     BlockArray_crops_top_pixels = [10, 10, 15, 30]
 #     BlockArray_crops_bottom_pixels = [70, 70, 65, 50]
 
-# class Capture_General:
-#     ScansPerFrame=298
-#     Blocks = 4
-#     BlockArray_frames = [85, 85+64, 85+64+64, 85+64+64+85]
-#     BlockArray_crops_top_pixels = [20, 30, 25, 20]
-#     BlockArray_crops_bottom_pixels = [60, 50, 55, 60]
+class Capture_General:
+    ScansPerFrame=298
+    Blocks = 4
+    BlockArray_frames = [85, 85+64, 85+64+64, 85+64+64+85]
+    BlockArray_crops_top_pixels = [20, 30, 25, 20]
+    BlockArray_crops_bottom_pixels = [60, 50, 55, 60]
 
 class Capture_H:
     ScansPerFrame=Capture_General.ScansPerFrame
@@ -174,7 +175,7 @@ def imgFusion(img1, img2, overlap_top, overlap_bottom):
     return img_new
 
 
-def channelBlend(image_list, start_length,end_length , Capture):
+def channelBlend(image_list, start_length, end_length, Capture, concat_only):
     for i in range(start_length, end_length):
         print(i)
         if i < Capture.BlockArray_frames[0]:
@@ -227,7 +228,7 @@ def channelBlend(image_list, start_length,end_length , Capture):
             overlap_top = Capture.BlockArray_overlap_top_pixels[3]
             overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[3]
 
-        if (overlap_top+overlap_bottom) == 0:
+        if (overlap_top+overlap_bottom) == 0 or concat_only:
             print("Only concat. No blending.")
             if i == start_length:
                 # Read the BMP strip
@@ -366,6 +367,7 @@ def channelBlend(image_list, start_length,end_length , Capture):
 #
 #     return img_up
 
+HIST_MATCHING = True
 BLEND_HSV = True
 IMAGE_INDEX = 2
 if not BLEND_HSV:
@@ -417,12 +419,22 @@ else:
         start_length = 0
         end_length = len(H_list)
 
-        H_concat = channelBlend(H_list, start_length, end_length, Capture_H)
-        S_concat = channelBlend(S_list, start_length, end_length, Capture_S)
-        V_blend = channelBlend(V_list, start_length, end_length, Capture_V)
-        print(H_concat.shape, S_concat.shape, V_blend.shape)
-        imgMerge = cv2.cvtColor(cv2.merge([H_concat, S_concat, V_blend]),cv2.COLOR_HSV2BGR)
+        CONCAT_ONLY = False
+        H_blend = channelBlend(H_list, start_length, end_length, Capture_H, CONCAT_ONLY)
+        S_blend = channelBlend(S_list, start_length, end_length, Capture_S, CONCAT_ONLY)
+        V_blend = channelBlend(V_list, start_length, end_length, Capture_V, CONCAT_ONLY)
 
-        save_file_name = f'{os.path.basename(folder)}-HV-{Capture_V.BlockArray_overlap_top_pixels[0]}-{Capture_V.BlockArray_overlap_top_pixels[1]}-{Capture_V.BlockArray_overlap_top_pixels[2]}-{Capture_V.BlockArray_overlap_top_pixels[3]}-{Capture_V.BlockArray_overlap_bottom_pixels[0]}-{Capture_V.BlockArray_overlap_bottom_pixels[1]}-{Capture_V.BlockArray_overlap_bottom_pixels[2]}-{Capture_V.BlockArray_overlap_bottom_pixels[3]}'
+        CONCAT_ONLY = True
+        ref_h = channelBlend(H_list, start_length, end_length, Capture_H, CONCAT_ONLY)
+
+        if HIST_MATCHING:
+            matched_h = hist_matching(H_blend, ref_h)
+            imgMerge = cv2.cvtColor(cv2.merge([matched_h, S_blend, V_blend]), cv2.COLOR_HSV2BGR)
+            save_file_name = f'{os.path.basename(folder)}-HV-match-{Capture_V.BlockArray_overlap_top_pixels[0]}-{Capture_V.BlockArray_overlap_top_pixels[1]}-{Capture_V.BlockArray_overlap_top_pixels[2]}-{Capture_V.BlockArray_overlap_top_pixels[3]}-{Capture_V.BlockArray_overlap_bottom_pixels[0]}-{Capture_V.BlockArray_overlap_bottom_pixels[1]}-{Capture_V.BlockArray_overlap_bottom_pixels[2]}-{Capture_V.BlockArray_overlap_bottom_pixels[3]}'
+
+        else:
+            imgMerge = cv2.cvtColor(cv2.merge([H_blend, S_blend, V_blend]),cv2.COLOR_HSV2BGR)
+            save_file_name = f'{os.path.basename(folder)}-HV-{Capture_V.BlockArray_overlap_top_pixels[0]}-{Capture_V.BlockArray_overlap_top_pixels[1]}-{Capture_V.BlockArray_overlap_top_pixels[2]}-{Capture_V.BlockArray_overlap_top_pixels[3]}-{Capture_V.BlockArray_overlap_bottom_pixels[0]}-{Capture_V.BlockArray_overlap_bottom_pixels[1]}-{Capture_V.BlockArray_overlap_bottom_pixels[2]}-{Capture_V.BlockArray_overlap_bottom_pixels[3]}'
+
         cv2.imwrite(f'./{save_file_name}.png', cv2.flip(imgMerge, 0))
 
