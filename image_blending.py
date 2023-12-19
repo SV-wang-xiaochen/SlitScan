@@ -54,12 +54,12 @@ class Capture_H:
     BlockArray_frames = Capture_General.BlockArray_frames
     BlockArray_crops_top_pixels = Capture_General.BlockArray_crops_top_pixels
     BlockArray_crops_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
-    BlockArray_overlap_top_pixels = [x-extend_top for x in BlockArray_crops_top_pixels]
-    BlockArray_overlap_bottom_pixels = [x-extend_bottom for x in BlockArray_crops_bottom_pixels]
+    # BlockArray_overlap_top_pixels = [x-extend_top for x in BlockArray_crops_top_pixels]
+    # BlockArray_overlap_bottom_pixels = [x-extend_bottom for x in BlockArray_crops_bottom_pixels]
     # BlockArray_overlap_top_pixels = [6, 20, 25, 20]
     # BlockArray_overlap_bottom_pixels = [56-1, 60-1, 55-1, 42-1]
-    # BlockArray_overlap_top_pixels = [0, 0, 0, 0]
-    # BlockArray_overlap_bottom_pixels = [0, 0, 0, 0]
+    BlockArray_overlap_top_pixels = [0, 0, 0, 0]
+    BlockArray_overlap_bottom_pixels = [0, 0, 0, 0]
 
 class Capture_S:
     ScansPerFrame=Capture_General.ScansPerFrame
@@ -367,9 +367,9 @@ def channelBlend(image_list, start_length, end_length, Capture, concat_only):
 #
 #     return img_up
 
-HIST_MATCHING = True
+HIST_MATCHING = False
 BLEND_HSV = True
-IMAGE_INDEX = 2
+IMAGE_INDEX = 9
 if not BLEND_HSV:
     path = f'../Dataset/strip_rgb'
     folder_list = glob.glob(f'{path}/*')
@@ -388,11 +388,12 @@ if not BLEND_HSV:
         start_length = 0
         end_length = len(R_list)
 
-        R_blend = channelBlend(R_list, start_length, end_length, Capture_R)
+        CONCAT_ONLY = False
+        R_blend = channelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
         cv2.imwrite(f'./R.png', cv2.flip(R_blend, 0))
-        G_blend = channelBlend(G_list, start_length, end_length, Capture_G)
+        G_blend = channelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
         cv2.imwrite(f'./G.png', cv2.flip(G_blend, 0))
-        B_blend = channelBlend(B_list, start_length, end_length, Capture_B)
+        B_blend = channelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
         cv2.imwrite(f'./B.png', cv2.flip(B_blend, 0))
         # print(R_fusion.shape, G_fusion.shape)
         # cv2.merge 实现图像通道的合并
@@ -421,8 +422,11 @@ else:
 
         CONCAT_ONLY = False
         H_blend = channelBlend(H_list, start_length, end_length, Capture_H, CONCAT_ONLY)
+        cv2.imwrite(f'./H.png', cv2.flip(H_blend, 0))
         S_blend = channelBlend(S_list, start_length, end_length, Capture_S, CONCAT_ONLY)
+        cv2.imwrite(f'./S.png', cv2.flip(S_blend, 0))
         V_blend = channelBlend(V_list, start_length, end_length, Capture_V, CONCAT_ONLY)
+        cv2.imwrite(f'./V.png', cv2.flip(V_blend, 0))
 
         CONCAT_ONLY = True
         ref_h = channelBlend(H_list, start_length, end_length, Capture_H, CONCAT_ONLY)
