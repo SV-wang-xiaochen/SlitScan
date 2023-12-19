@@ -3,10 +3,44 @@ import glob
 import cv2
 import numpy as np
 from hist_matching import hist_matching
+import time
 
 # Note that overlap_top must not be larger than the number of valid pixels which is 16 in the current setting
 extend_top = 5
 extend_bottom = 20
+
+# class Capture:
+#     ScansPerFrame=188
+#     Blocks = 4
+#     BlockArray_frames = [32, 94, 156, 188]
+#     BlockArray_crops_top_pixels = [16, 40, 45, 20]
+#     BlockArray_crops_bottom_pixels = [40, 40, 35, 36]
+#     BlockArray_overlap_top_pixels = [x-1 for x in BlockArray_crops_top_pixels]
+#     BlockArray_overlap_bottom_pixels = [x-1 for x in BlockArray_crops_bottom_pixels]
+#     class Strip:
+#         Width=4608
+#         Height=96
+
+# class Capture_General:
+#     ScansPerFrame=208
+#     Blocks = 4
+#     BlockArray_frames = [40, 104, 168, 208]
+#     BlockArray_crops_top_pixels = [6, 20, 25, 20]
+#     BlockArray_crops_bottom_pixels = [56, 60, 55, 42]
+
+# class Capture_General:
+#     ScansPerFrame=208
+#     Blocks = 4
+#     BlockArray_frames = [40, 104, 168, 208]
+#     BlockArray_crops_top_pixels = [12, 30, 25, 10]
+#     BlockArray_crops_bottom_pixels = [50, 50, 55, 52]
+
+# class Capture_General:
+#     ScansPerFrame=298
+#     Blocks = 4
+#     BlockArray_frames = [85, 85+64, 85+64+64, 85+64+64+85]
+#     BlockArray_crops_top_pixels = [10, 10, 15, 30]
+#     BlockArray_crops_bottom_pixels = [70, 70, 65, 50]
 
 class Capture_General:
     ScansPerFrame=298
@@ -14,6 +48,13 @@ class Capture_General:
     BlockArray_frames = [85, 85+64, 85+64+64, 85+64+64+85]
     BlockArray_crops_top_pixels = [20, 30, 25, 20]
     BlockArray_crops_bottom_pixels = [60, 50, 55, 60]
+
+# class Capture_General:
+#     ScansPerFrame=298
+#     Blocks = 4
+#     BlockArray_frames = [85, 85+64, 85+64+64, 85+64+64+85]
+#     BlockArray_crops_top_pixels = [25, 25, 30, 35]
+#     BlockArray_crops_bottom_pixels = [55, 55, 50, 45]
 
 class Capture_H:
     ScansPerFrame=Capture_General.ScansPerFrame
@@ -93,8 +134,8 @@ def imgFusion(img1, img2, overlap_top, overlap_bottom):
     # 上下融合
     row1, col = img1.shape
     row2, col = img2.shape
-    print('img1.shape, img2.shape')
-    print(img1.shape, img2.shape)
+    # print('img1.shape, img2.shape')
+    # print(img1.shape, img2.shape)
 
     # # hack for some special cases. Not sure if there is a bug now.
     # if row1+row2 - overlap_top - overlap_bottom<row1:
@@ -273,21 +314,26 @@ def channelBlend(R_list, G_list, B_list, Capture_H, Capture_S, Capture_V):
                 img_up_V = img_up_V[up_crop_bottom - overlap_bottom:, :]
                 img_down_V = img_down_V[:-(down_crop_top - overlap_top), :]
 
-                img_up_V = (img_up_V - img_up_V.min()) / img_up_V.ptp()
-                img_down_V = (img_down_V - img_down_V.min()) / img_down_V.ptp()
+                t0 = time.time()
+
+                t1 = time.time()
+                print(f"t1-t0:{t1 - t0}")
 
                 img_up_V = imgFusion(img_down_V, img_up_V, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
-                img_up_V = np.uint8(img_up_V * 255)
+
+                t2 = time.time()
+                print(f"t2-t1:{t2-t1}")
+
+                t3 = time.time()
+                print(f"t3-t2:{t3-t2}")
 
                 img_up_H = cv2.vconcat([img_down_H[:-down_crop_top, :], img_up_H[up_crop_bottom:,:]])
                 img_up_S = cv2.vconcat([img_down_S[:-down_crop_top, :], img_up_S[up_crop_bottom:,:]])
 
-                print(img_up_H.shape, img_up_S.shape, img_up_V.shape)
 
     return imgMerge_all
 
 IMAGE_INDEX = 9
-
 
 path = f'../Dataset/strip_rgb'
 folder_list = glob.glob(f'{path}/*')
