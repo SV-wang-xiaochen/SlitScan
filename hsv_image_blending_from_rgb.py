@@ -150,7 +150,7 @@ def imgFusion(img1, img2, overlap_top, overlap_bottom):
     return img_new
 
 
-def channelBlend(R_list, G_list, B_list, Capture_H, Capture_S, Capture_V):
+def hsvChannelBlend(image_list, Capture_V):
     Capture = Capture_V
     for i in range(Capture.ScansPerFrame):
         print(i)
@@ -342,11 +342,8 @@ for folder in folder_list[IMAGE_INDEX:IMAGE_INDEX+1]:
     print(folder)
     image_list = glob.glob(f'{folder}/*.bmp')
     ScansPerFrame = Capture_General.ScansPerFrame
-    R_list = image_list[:ScansPerFrame]
-    G_list = image_list[ScansPerFrame:ScansPerFrame*2]
-    B_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
 
-    imgMerge = channelBlend(R_list, G_list, B_list, Capture_H, Capture_S, Capture_V)
+    imgMerge = hsvChannelBlend(image_list, Capture_V)
 
     save_file_name = f'{os.path.basename(folder)}-HV-{Capture_V.BlockArray_overlap_top_pixels[0]}-{Capture_V.BlockArray_overlap_top_pixels[1]}-{Capture_V.BlockArray_overlap_top_pixels[2]}-{Capture_V.BlockArray_overlap_top_pixels[3]}-{Capture_V.BlockArray_overlap_bottom_pixels[0]}-{Capture_V.BlockArray_overlap_bottom_pixels[1]}-{Capture_V.BlockArray_overlap_bottom_pixels[2]}-{Capture_V.BlockArray_overlap_bottom_pixels[3]}'
 

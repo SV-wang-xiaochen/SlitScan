@@ -3,6 +3,7 @@ import glob
 import cv2
 import numpy as np
 from hist_matching import hist_matching
+import time
 
 # Note that overlap_top must not be larger than the number of valid pixels which is 16 in the current setting
 extend_top = 5
@@ -167,8 +168,6 @@ def imgFusion(img1, img2, overlap_top, overlap_bottom):
     # 上下融合
     row1, col = img1.shape
     row2, col = img2.shape
-    print('img1.shape, img2.shape')
-    print(img1.shape, img2.shape)
 
     # # hack for some special cases. Not sure if there is a bug now.
     # if row1+row2 - overlap_top - overlap_bottom<row1:
@@ -183,7 +182,7 @@ def imgFusion(img1, img2, overlap_top, overlap_bottom):
     return img_new
 
 
-def channelBlend(image_list, start_length, end_length, Capture, concat_only):
+def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
     for i in range(start_length, end_length):
         print(i)
         if i < Capture.BlockArray_frames[0]:
@@ -282,7 +281,13 @@ def channelBlend(image_list, start_length, end_length, Capture, concat_only):
 
                 img_down = img_down[:-(down_crop_top - overlap_top), :]
 
+
+                t1 = time.time()
+
                 img_up = imgFusion(img_down, img_up, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+
+                t2 = time.time()
+                print(f"t2-t1:{t2-t1}")
 
     return img_up
 
@@ -385,11 +390,11 @@ if not BLEND_HSV:
         end_length = len(R_list)
 
         CONCAT_ONLY = False
-        R_blend = channelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
+        R_blend = rgbChannelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
         cv2.imwrite(f'./R.png', cv2.flip(R_blend, 0))
-        G_blend = channelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
+        G_blend = rgbChannelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
         cv2.imwrite(f'./G.png', cv2.flip(G_blend, 0))
-        B_blend = channelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
+        B_blend = rgbChannelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
         cv2.imwrite(f'./B.png', cv2.flip(B_blend, 0))
         # print(R_fusion.shape, G_fusion.shape)
         # cv2.merge 实现图像通道的合并
@@ -417,16 +422,16 @@ else:
         end_length = len(H_list)
 
         CONCAT_ONLY = False
-        H_blend = channelBlend(H_list, start_length, end_length, Capture_H, CONCAT_ONLY)
+        H_blend = rgbChannelBlend(H_list, start_length, end_length, Capture_H, CONCAT_ONLY)
         cv2.imwrite(f'./H.png', cv2.flip(H_blend, 0))
-        S_blend = channelBlend(S_list, start_length, end_length, Capture_S, CONCAT_ONLY)
+        S_blend = rgbChannelBlend(S_list, start_length, end_length, Capture_S, CONCAT_ONLY)
         cv2.imwrite(f'./S.png', cv2.flip(S_blend, 0))
-        V_blend = channelBlend(V_list, start_length, end_length, Capture_V, CONCAT_ONLY)
+        V_blend = rgbChannelBlend(V_list, start_length, end_length, Capture_V, CONCAT_ONLY)
         cv2.imwrite(f'./V.png', cv2.flip(V_blend, 0))
 
         if HIST_MATCHING:
             CONCAT_ONLY = True
-            ref_h = channelBlend(H_list, start_length, end_length, Capture_H, CONCAT_ONLY)
+            ref_h = rgbChannelBlend(H_list, start_length, end_length, Capture_H, CONCAT_ONLY)
 
             matched_h = hist_matching(H_blend, ref_h)
             imgMerge = cv2.cvtColor(cv2.merge([matched_h, S_blend, V_blend]), cv2.COLOR_HSV2BGR)
