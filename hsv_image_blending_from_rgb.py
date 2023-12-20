@@ -97,41 +97,17 @@ class Capture_V:
     # BlockArray_overlap_top_pixels = [16, 16, 16, 16]
     # BlockArray_overlap_bottom_pixels = [30, 30, 30, 30]
 
-def calWeight(overlap_top, overlap_bottom, k):
-    '''
-    :param d: 融合重叠部分直径
-    :param k: 融合计算权重参数
-    :return:
-    '''
-
+def calWeight(overlap_top, overlap_bottom):
     x = np.arange(-overlap_top, overlap_bottom)
     # y = 1 / (1 + np.exp(-k * x)) #exponenital
     y = x/(overlap_top+overlap_bottom) + overlap_top/(overlap_top+overlap_bottom) # linear
     return y
 
 
-def imgFusion(img1, img2, overlap_top, overlap_bottom):
-    '''
-    图像加权融合
-    :param img1:
-    :param img2:
-    :param overlap: 重合长度
-    :param left_right: 是否是左右融合
-    :return:
-    '''
-    # 这里先暂时考虑平行向融合
-    w = calWeight(overlap_top, overlap_bottom, 0.05)  # k=5 这里是超参
+def imgBlend(img1, img2, overlap_top, overlap_bottom):
 
-    # if left_right:  # 左右融合
-    #     col, row = img2.shape
-    #     img_new = np.zeros((row, 2 * col - overlap))
-    #     img_new[:, :col] = img1
-    #     w_expand = np.tile(w, (col, 1))  # 权重扩增
-    #     img_new[:, col - overlap:col] = (1 - w_expand) * img1[:, col - overlap:col] + w_expand * img2[:, :overlap]
-    #     img_new[:, col:] = img2[:, overlap:]
-    # else:
+    w = calWeight(overlap_top, overlap_bottom)
 
-    # 上下融合
     row1, col = img1.shape
     row2, col = img2.shape
     # print('img1.shape, img2.shape')
@@ -324,7 +300,7 @@ def hsvChannelBlend(image_list, Capture_V):
                 img_up_V = (img_up_V - img_up_V.min()) / img_up_V.ptp()
                 img_down_V = (img_down_V - img_down_V.min()) / img_down_V.ptp()
 
-                img_up_V = imgFusion(img_down_V, img_up_V, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up_V = imgBlend(img_down_V, img_up_V, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 # if normalization is removed, somehow the code throws an error. To be fixed.
                 img_up_V = np.uint8(img_up_V * 255)
@@ -358,7 +334,7 @@ def hsvChannelBlend(image_list, Capture_V):
                 t1 = time.time()
                 print(f"t1-t0:{t1 - t0}")
 
-                img_up_V = imgFusion(img_down_V, img_up_V, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up_V = imgBlend(img_down_V, img_up_V, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 t2 = time.time()
                 print(f"t2-t1:{t2-t1}")

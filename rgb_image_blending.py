@@ -131,47 +131,20 @@ Capture_B = Capture_R
 
 
 
-def calWeight(overlap_top, overlap_bottom, k):
-    '''
-    :param d: 融合重叠部分直径
-    :param k: 融合计算权重参数
-    :return:
-    '''
-
+def calWeight(overlap_top, overlap_bottom):
     x = np.arange(-overlap_top, overlap_bottom)
     # y = 1 / (1 + np.exp(-k * x)) #exponenital
     y = x/(overlap_top+overlap_bottom) + overlap_top/(overlap_top+overlap_bottom) # linear
     return y
 
 
-def imgFusion(img1, img2, overlap_top, overlap_bottom):
-    '''
-    图像加权融合
-    :param img1:
-    :param img2:
-    :param overlap: 重合长度
-    :param left_right: 是否是左右融合
-    :return:
-    '''
-    # 这里先暂时考虑平行向融合
-    w = calWeight(overlap_top, overlap_bottom, 0.05)  # k=5 这里是超参
+def imgBlend(img1, img2, overlap_top, overlap_bottom):
 
-    # if left_right:  # 左右融合
-    #     col, row = img2.shape
-    #     img_new = np.zeros((row, 2 * col - overlap))
-    #     img_new[:, :col] = img1
-    #     w_expand = np.tile(w, (col, 1))  # 权重扩增
-    #     img_new[:, col - overlap:col] = (1 - w_expand) * img1[:, col - overlap:col] + w_expand * img2[:, :overlap]
-    #     img_new[:, col:] = img2[:, overlap:]
-    # else:
+    w = calWeight(overlap_top, overlap_bottom)
 
-    # 上下融合
     row1, col = img1.shape
     row2, col = img2.shape
 
-    # # hack for some special cases. Not sure if there is a bug now.
-    # if row1+row2 - overlap_top - overlap_bottom<row1:
-    # img_new = img1
     img_new = np.zeros((row1 + row2 - overlap_top - overlap_bottom, col))
     img_new[:row1 - overlap_top - overlap_bottom, :] = img1[:row1 - overlap_top - overlap_bottom, :]
     w = np.reshape(w, (overlap_top+overlap_bottom, 1))
@@ -270,7 +243,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
                 img_down = img_down[:-(down_crop_top - overlap_top), :]
 
-                img_up = imgFusion(img_down, img_up, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up = imgBlend(img_down, img_up, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 img_up = img_up[down_crop_bottom:, :]
 
@@ -284,7 +257,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
                 t1 = time.time()
 
-                img_up = imgFusion(img_down, img_up, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up = imgBlend(img_down, img_up, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 t2 = time.time()
                 print(f"t2-t1:{t2-t1}")
