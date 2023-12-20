@@ -137,15 +137,51 @@ def imgFusion(img1, img2, overlap_top, overlap_bottom):
     # print('img1.shape, img2.shape')
     # print(img1.shape, img2.shape)
 
-    # # hack for some special cases. Not sure if there is a bug now.
-    # if row1+row2 - overlap_top - overlap_bottom<row1:
-    # img_new = img1
+    # method 1
     img_new = np.zeros((row1 + row2 - overlap_top - overlap_bottom, col))
     img_new[:row1 - overlap_top - overlap_bottom, :] = img1[:row1 - overlap_top - overlap_bottom, :]
     w = np.reshape(w, (overlap_top+overlap_bottom, 1))
     w_expand = np.tile(w, (1, col))
     img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * img1[row1 - overlap_top - overlap_bottom:row1, :] + w_expand * img2[:(overlap_top+overlap_bottom), :]
     img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
+
+    # # method 2
+    # w = np.reshape(w, (overlap_top+overlap_bottom, 1))
+    # w_expand = np.tile(w, (1, col))
+    #
+    # t0 = time.time()
+    # tmp = np.concatenate((img1[:row1 - overlap_top - overlap_bottom, :], (1 - w_expand) * img1[row1 - overlap_top - overlap_bottom:row1, :] + w_expand * img2[:(overlap_top+overlap_bottom), :], ), axis=0)
+    # t1 = time.time()
+    # print(f"T1: {t1-t0}")
+    # img_new = np.concatenate((tmp,img2[(overlap_top + overlap_bottom):, :]), axis=0)
+    # t2 = time.time()
+    # print(f"T2: {t2 - t1}")
+
+    # # method 3
+    # w = np.reshape(w, (overlap_top+overlap_bottom, 1))
+    # w_expand = np.tile(w, (1, col))
+    #
+    # t0 = time.time()
+    # a = img1[:row1 - overlap_top - overlap_bottom, :]
+    # b = (1 - w_expand) * img1[row1 - overlap_top - overlap_bottom:, :] + w_expand * img2[:(overlap_top+overlap_bottom), :]
+    # c = img2[(overlap_top+overlap_bottom):, :]
+    # print(b.shape, c.shape)
+    # img_new = cv2.vconcat([b,c])
+    # t1 = time.time()
+    # print(f"T1: {t1-t0}")
+
+    # # method 4
+    # w = np.reshape(w, (overlap_top+overlap_bottom, 1))
+    # w_expand = np.tile(w, (1, col))
+    # a = img1[:row1 - overlap_top - overlap_bottom, :]
+    # b = (1 - w_expand) * img1[row1 - overlap_top - overlap_bottom:, :] + w_expand * img2[:(overlap_top+overlap_bottom), :]
+    # c = img2[(overlap_top+overlap_bottom):, :]
+    # print(a.shape, b.shape)
+    # # print(a.dims, b.dims)
+    # # print(a.cols, b.cols)
+    # # print(a.type(),b.type())
+    # img_new = np.vstack((np.vstack((a,b)), c))
+    # print(img_new.shape)
 
     return img_new
 
@@ -284,10 +320,13 @@ def hsvChannelBlend(image_list, Capture_V):
                 img_up_V = img_up_V[up_crop_bottom - overlap_bottom:, :]
                 img_down_V = img_down_V[:-(down_crop_top - overlap_top), :]
 
+                # if normalization is removed, somehow the code throws an error. To be fixed.
                 img_up_V = (img_up_V - img_up_V.min()) / img_up_V.ptp()
                 img_down_V = (img_down_V - img_down_V.min()) / img_down_V.ptp()
 
                 img_up_V = imgFusion(img_down_V, img_up_V, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+
+                # if normalization is removed, somehow the code throws an error. To be fixed.
                 img_up_V = np.uint8(img_up_V * 255)
                 img_up_V = img_up_V[down_crop_bottom:, :]
 
