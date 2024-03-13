@@ -3,9 +3,13 @@ import numpy as np
 import glob
 import os
 import json
+import xlsxwriter
 
 spacing = 23.4742
 mark_thickness = 1
+
+column_names = ['ring-1', 'ring-2', 'ring-3', 'ring-4', 'ring-5', 'ring-6', 'ring-7', 'ring-8', 'ring-9', 'ring-10']
+row_names = []
 def ringIndexToRetinaUm(n):
     a1_mm = 0.7072
     a3_mm = 0.000272
@@ -29,42 +33,79 @@ def ringMask(img_width, img_height, center_x, center_y, inner_diameter, outer_di
 
     return mask
 
-data_path = r"D:\Projects\Dataset\temp_issue"
+data_path = r"D:\Projects\Dataset\temp_issue\denoise"
 result_path = r"D:\Projects\Dataset\temp_issue\results"
 os.makedirs(result_path, exist_ok=True)
 
-img_path = f"{data_path}/2.5mm VG-VC0296_2024-03-12_14-22-02_OD_Angio 15x12 640x512 R4.VG.png"
-# img_path = f"{data_path}/1.7mm VG-VC0296_2024-03-12_14-10-09_OD_Angio 15x12 640x512 R4.VG.png"
-src = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-print(src.shape[1])
-center_x = int(src.shape[1]/2)-1
-center_y = int(src.shape[0]/2)+1
-cv2.circle(src, (center_x, center_y), radius=0, color=(0, 0, 255), thickness=mark_thickness)
+result_table = []
 
-mask_list = []
-for i in range(1, 9):
-    radius_x = int(ringIndexToRetinaUm(i)/spacing)
-    print(radius_x)
-    inner_diameter = radius_x-1
-    outer_diameter= int(radius_x+(i+1)*2)
-    cv2.circle(src, (center_x, center_y), radius=outer_diameter, color=(0, 0, 255), thickness=mark_thickness)
-    cv2.circle(src, (center_x, center_y), radius=inner_diameter, color=(0, 0, 255), thickness=mark_thickness)
-    mask = ringMask(src.shape[1], src.shape[0], center_x, center_y, inner_diameter, outer_diameter)
-    print(mask.shape, src.shape)
-
-    src_masked = np.where(mask==1, src, 0)
-    mask_list.append(mask)
-
+img_list = glob.glob(f'{data_path}/*.png')
+for img_path in img_list:
     base_name = os.path.basename(img_path).split('.png')[0]
-    cv2.imwrite(f'{result_path}/{base_name}-{str(i)}.png', src_masked)
+    row_names.append(base_name)
+    src = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    src_color = cv2.imread(img_path)
+    src_remove_noise = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    # print(src.shape[1])
+    center_x = int(src.shape[1]/2)-1
+    center_y = int(src.shape[0]/2)+1
+    cv2.circle(src, (center_x, center_y), radius=0, color=(0, 0, 255), thickness=mark_thickness)
 
-base_name = os.path.basename(img_path)
-cv2.imwrite(f'{result_path}/{base_name}', src)
+    mask_list = []
+    result_row = []
+    for i in range(1, 11):
+        radius_x = int(ringIndexToRetinaUm(i)/spacing)
+        # print(radius_x)
+        inner_diameter = radius_x-1
+        outer_diameter= int(radius_x+(i+1)*2)
+        cv2.circle(src_color, (center_x, center_y), radius=outer_diameter, color=(0, 0, 255), thickness=mark_thickness)
+        cv2.circle(src_color, (center_x, center_y), radius=inner_diameter, color=(0, 255, 0), thickness=mark_thickness)
+        mask = ringMask(src.shape[1], src.shape[0], center_x, center_y, inner_diameter, outer_diameter)
+        # print(mask.shape, src.shape)
 
-# # Uncomment to display the mask
-# cv2.imshow('Ring Mask', mask_list[0] * 255)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+        src_masked = np.where(mask==1, src, 0)
+        mask_list.append(mask)
+
+        cv2.imwrite(f'{result_path}/{base_name}-ring{str(i)}.png', src_masked)
+
+        # Calculate number and average of elements beyond 0
+        count_beyond_0 = np.count_nonzero(src_masked > 0)
+        average_beyond_0 = np.mean(src_masked[src_masked > 0])
+        print(average_beyond_0)
+
+        result_row.append(average_beyond_0)
+
+    base_name = os.path.basename(img_path)
+    cv2.imwrite(f'{result_path}/{base_name}', src_color)
+
+    result_table.append(result_row)
+
+    # Create a 2D NumPy array
+    array_2d = np.array(result_table)
+
+    # Create a new Excel file and add a worksheet
+    workbook = xlsxwriter.Workbook(f'{result_path}/results.xlsx')
+    worksheet = workbook.add_worksheet()
+
+    # Write the 2D NumPy array to the worksheet
+    for row_num, row_data in enumerate(array_2d):
+        for col_num, value in enumerate(row_data):
+            worksheet.write(row_num + 1, col_num + 1, value)
+
+    # Write column and row indices
+
+    for col_num, value in enumerate(column_names):
+        worksheet.write(0, col_num + 1, value)
+
+    for row_num, value in enumerate(row_names):
+        worksheet.write(row_num + 1, 0, value)
+
+    workbook.close()
+
+    # # Uncomment to display the mask
+    # cv2.imshow('Ring Mask', mask_list[0] * 255)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
 
 
