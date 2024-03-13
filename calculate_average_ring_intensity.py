@@ -35,7 +35,7 @@ os.makedirs(result_path, exist_ok=True)
 
 img_path = f"{data_path}/2.5mm VG-VC0296_2024-03-12_14-22-02_OD_Angio 15x12 640x512 R4.VG.png"
 # img_path = f"{data_path}/1.7mm VG-VC0296_2024-03-12_14-10-09_OD_Angio 15x12 640x512 R4.VG.png"
-src = cv2.imread(img_path)
+src = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 print(src.shape[1])
 center_x = int(src.shape[1]/2)-1
 center_y = int(src.shape[0]/2)+1
@@ -50,7 +50,13 @@ for i in range(1, 9):
     cv2.circle(src, (center_x, center_y), radius=outer_diameter, color=(0, 0, 255), thickness=mark_thickness)
     cv2.circle(src, (center_x, center_y), radius=inner_diameter, color=(0, 0, 255), thickness=mark_thickness)
     mask = ringMask(src.shape[1], src.shape[0], center_x, center_y, inner_diameter, outer_diameter)
+    print(mask.shape, src.shape)
+
+    src_masked = np.where(mask==1, src, 0)
     mask_list.append(mask)
+
+    base_name = os.path.basename(img_path).split('.png')[0]
+    cv2.imwrite(f'{result_path}/{base_name}-{str(i)}.png', src_masked)
 
 base_name = os.path.basename(img_path)
 cv2.imwrite(f'{result_path}/{base_name}', src)
