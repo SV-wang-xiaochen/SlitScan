@@ -1,10 +1,14 @@
 import cv2
 import numpy as np
+import glob
 
-# Load the two images
-image1 = cv2.imread(r'D:\Projects\Dataset\issue_137\jpg\1.jpg')
-image2 = cv2.imread(r'D:\Projects\Dataset\issue_137\jpg\2.jpg')
-image3 = cv2.imread(r'D:\Projects\Dataset\issue_137\jpg\3.jpg')
+data_path = r"D:\Projects\Dataset\issue_137\eye_0314\LY\5"
+img_list = glob.glob(f'{data_path}/*.jpg')
+
+# Load the images
+image1 = cv2.imread(img_list[0])
+image2 = cv2.imread(img_list[1])
+image3 = cv2.imread(img_list[2])
 
 # Ensure both images have the same dimensions
 image1 = cv2.resize(image1, (image2.shape[1], image2.shape[0]))
