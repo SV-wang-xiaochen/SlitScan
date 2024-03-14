@@ -33,8 +33,8 @@ def ringMask(img_width, img_height, center_x, center_y, inner_diameter, outer_di
 
     return mask
 
-data_path = r"D:\Projects\Dataset\temp_issue\denoise"
-result_path = r"D:\Projects\Dataset\temp_issue\results"
+data_path = r"D:\Projects\Dataset\issue_9205\denoise"
+result_path = r"D:\Projects\Dataset\issue_9205\results"
 os.makedirs(result_path, exist_ok=True)
 
 result_table = []
@@ -47,7 +47,7 @@ for img_path in img_list:
     src_color = cv2.imread(img_path)
     src_remove_noise = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
     # print(src.shape[1])
-    center_x = int(src.shape[1]/2)-1
+    center_x = int(src.shape[1]/2)-2
     center_y = int(src.shape[0]/2)+1
     cv2.circle(src, (center_x, center_y), radius=0, color=(0, 0, 255), thickness=mark_thickness)
 
@@ -56,8 +56,8 @@ for img_path in img_list:
     for i in range(1, 11):
         radius_x = int(ringIndexToRetinaUm(i)/spacing)
         # print(radius_x)
-        inner_diameter = radius_x-1
-        outer_diameter= int(radius_x+(i+1)*2)
+        inner_diameter = radius_x-(i+2)
+        outer_diameter= int(radius_x+(i+2))
         cv2.circle(src_color, (center_x, center_y), radius=outer_diameter, color=(0, 0, 255), thickness=mark_thickness)
         cv2.circle(src_color, (center_x, center_y), radius=inner_diameter, color=(0, 255, 0), thickness=mark_thickness)
         mask = ringMask(src.shape[1], src.shape[0], center_x, center_y, inner_diameter, outer_diameter)
