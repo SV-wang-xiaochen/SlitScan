@@ -37,7 +37,8 @@ def maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2):
         column_region2 = overlap_region2[:, i]
         max_accumulated_intensity_index = maxAccumulatedIntenstyIndex(column_region1, column_region2)
         max_accumulated_intensity_index_list.append(max_accumulated_intensity_index)
-    return np.array(max_accumulated_intensity_index_list)
+        max_accumulated_intensity_index_array = np.array(max_accumulated_intensity_index_list)
+    return max_accumulated_intensity_index_list
 
 def maxAccumulatedIntenstyIndex(column_region1, column_region2):
     b = 1
@@ -60,7 +61,7 @@ def maxAccumulatedIntenstyIndex(column_region1, column_region2):
 
     return max_accumulated_intensity_index
 
-def imgBlend(img1, img2, overlap_top, overlap_bottom):
+def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
 
     w = calWeight(overlap_top, overlap_bottom)
 
@@ -75,7 +76,13 @@ def imgBlend(img1, img2, overlap_top, overlap_bottom):
     overlap_region1 = img1[row1 - overlap_top - overlap_bottom:row1, :]
     overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
 
-    print(maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2))
+    curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
+    print(curve_list)
+
+    curve_img = np.zeros((overlap_top+overlap_bottom, 4608))
+    for k, index in enumerate(curve_list):
+        curve_img[index, k] = 255
+    cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
 
     img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * overlap_region1 + w_expand * overlap_region2
     img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
@@ -84,6 +91,7 @@ def imgBlend(img1, img2, overlap_top, overlap_bottom):
 
 
 def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
+    label_matrix = np.zeros((4608, 4800))
     for i in range(start_length, end_length):
         print(i)
         if i < Capture.BlockArray_frames[0]:
@@ -171,7 +179,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
                 img_down = img_down[down_crop_top - overlap_top:, :]
 
-                img_up = imgBlend(img_up, img_down, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 img_up = img_up[:-down_crop_bottom, :]
 
@@ -185,7 +193,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
                 t1 = time.time()
 
-                img_up = imgBlend(img_up, img_down, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 t2 = time.time()
                 print(f"t2-t1:{t2-t1}")
