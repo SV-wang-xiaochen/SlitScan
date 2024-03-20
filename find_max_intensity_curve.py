@@ -29,6 +29,36 @@ def calWeight(overlap_top, overlap_bottom):
     y = x/(overlap_top+overlap_bottom) + overlap_top/(overlap_top+overlap_bottom) # linear
     return y
 
+def maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2):
+    columns = overlap_region1.shape[1]
+    max_accumulated_intensity_index_list = []
+    for i in range(columns):
+        column_region1 = overlap_region1[:, i]
+        column_region2 = overlap_region2[:, i]
+        max_accumulated_intensity_index = maxAccumulatedIntenstyIndex(column_region1, column_region2)
+        max_accumulated_intensity_index_list.append(max_accumulated_intensity_index)
+    return np.array(max_accumulated_intensity_index_list)
+
+def maxAccumulatedIntenstyIndex(column_region1, column_region2):
+    b = 1
+
+    rows = column_region1.shape[0]
+
+    max_accumulated_intensity = 0
+    max_accumulated_intensity_index = 0
+
+    accumulated_intensity1 = 0
+    accumulated_intensity2 = 0
+
+    for i in range(rows):
+        for j in range(0, i):
+            accumulated_intensity1 += column_region1[j]
+        for k in range(i, rows):
+            accumulated_intensity2 += column_region2[k]
+        if (accumulated_intensity1+accumulated_intensity2) > max_accumulated_intensity:
+            max_accumulated_intensity_index = i
+
+    return max_accumulated_intensity_index
 
 def imgBlend(img1, img2, overlap_top, overlap_bottom):
 
@@ -41,7 +71,13 @@ def imgBlend(img1, img2, overlap_top, overlap_bottom):
     img_new[:row1 - overlap_top - overlap_bottom, :] = img1[:row1 - overlap_top - overlap_bottom, :]
     w = np.reshape(w, (overlap_top+overlap_bottom, 1))
     w_expand = np.tile(w, (1, col))
-    img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * img1[row1 - overlap_top - overlap_bottom:row1, :] + w_expand * img2[:(overlap_top+overlap_bottom), :]
+
+    overlap_region1 = img1[row1 - overlap_top - overlap_bottom:row1, :]
+    overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
+
+    print(maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region1))
+
+    img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * overlap_region1 + w_expand * overlap_region2
     img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
 
     return img_new
@@ -166,22 +202,21 @@ R_list = image_list[:ScansPerFrame]
 G_list = image_list[ScansPerFrame:ScansPerFrame*2]
 B_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
 
-# length = len(R_list)
-length = 200
 start_length = 0
-end_length = len(R_list)
+end_length = 4
+# end_length = len(R_list)
 
 CONCAT_ONLY = False
-R_blend = rgbChannelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
-cv2.imwrite(f'./R.png', cv2.flip(R_blend, 0))
+# R_blend = rgbChannelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
+# cv2.imwrite(f'./R.png', cv2.flip(R_blend, 0))
 G_blend = rgbChannelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
-cv2.imwrite(f'./G.png', cv2.flip(G_blend, 0))
-B_blend = rgbChannelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
-cv2.imwrite(f'./B.png', cv2.flip(B_blend, 0))
+cv2.imwrite(f'./G.png', G_blend)
+# B_blend = rgbChannelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
+# cv2.imwrite(f'./B.png', cv2.flip(B_blend, 0))
 # print(R_fusion.shape, G_fusion.shape)
 # cv2.merge 实现图像通道的合并
-imgMerge = cv2.merge([B_blend, G_blend, R_blend])
+# imgMerge = cv2.merge([B_blend, G_blend, R_blend])
 
 save_file_name = f'RGB-{Capture_R.BlockArray_overlap_top_pixels[0]}-{Capture_R.BlockArray_overlap_top_pixels[1]}-{Capture_R.BlockArray_overlap_top_pixels[2]}-{Capture_R.BlockArray_overlap_top_pixels[3]}-{Capture_R.BlockArray_overlap_bottom_pixels[0]}-{Capture_R.BlockArray_overlap_bottom_pixels[1]}-{Capture_R.BlockArray_overlap_bottom_pixels[2]}-{Capture_R.BlockArray_overlap_bottom_pixels[3]}'
-cv2.imwrite(f'./{save_file_name}.png', cv2.flip(imgMerge, 0))
+cv2.imwrite(f'./{save_file_name}.png', G_blend)
 print(f'./{save_file_name}.png')
