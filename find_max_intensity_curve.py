@@ -47,15 +47,15 @@ def maxAccumulatedIntenstyIndex(column_region1, column_region2):
     max_accumulated_intensity = 0
     max_accumulated_intensity_index = 0
 
-    accumulated_intensity1 = 0
-    accumulated_intensity2 = 0
-
-    for i in range(rows):
-        for j in range(0, i):
+    for i in range(0, rows):
+        accumulated_intensity1 = 0
+        accumulated_intensity2 = 0
+        for j in range(0, i+1):
             accumulated_intensity1 += column_region1[j]
-        for k in range(i, rows):
+        for k in range(i+1, rows):
             accumulated_intensity2 += column_region2[k]
         if (accumulated_intensity1+accumulated_intensity2) > max_accumulated_intensity:
+            max_accumulated_intensity = accumulated_intensity1+accumulated_intensity2
             max_accumulated_intensity_index = i
 
     return max_accumulated_intensity_index
@@ -75,7 +75,7 @@ def imgBlend(img1, img2, overlap_top, overlap_bottom):
     overlap_region1 = img1[row1 - overlap_top - overlap_bottom:row1, :]
     overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
 
-    print(maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region1))
+    print(maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2))
 
     img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * overlap_region1 + w_expand * overlap_region2
     img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
