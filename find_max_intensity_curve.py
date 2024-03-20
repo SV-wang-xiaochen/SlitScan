@@ -75,13 +75,14 @@ def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
 
     overlap_region1 = img1[row1 - overlap_top - overlap_bottom:row1, :]
     overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
-
+    cv2.imwrite(f'./curve/curve-{i}-up.png', overlap_region1)
+    cv2.imwrite(f'./curve/curve-{i}-down.png', overlap_region2)
     curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
     print(curve_list)
 
     curve_img = np.zeros((overlap_top+overlap_bottom, 4608))
     for k, index in enumerate(curve_list):
-        curve_img[index, k] = 255
+        curve_img[:index, k] = 255
     cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
 
     img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * overlap_region1 + w_expand * overlap_region2
@@ -211,8 +212,8 @@ G_list = image_list[ScansPerFrame:ScansPerFrame*2]
 B_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
 
 start_length = 0
-end_length = 4
-# end_length = len(R_list)
+# end_length = 4
+end_length = len(R_list)
 
 CONCAT_ONLY = False
 # R_blend = rgbChannelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
