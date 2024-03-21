@@ -9,16 +9,16 @@ class Capture_General:
     ScansPerFrame=90
     Blocks = 4
     BlockArray_frames = [30, 30+15, 30+15+15, 30+15+15+30]
-    BlockArray_crops_top_pixels = [45, 70, 70, 45]
-    BlockArray_crops_bottom_pixels = [45, 70, 70, 45]
+    BlockArray_crops_top_pixels = [20, 10, 88, 20]
+    BlockArray_crops_bottom_pixels = [38, 98, 20, 38]
 class Capture_R:
     ScansPerFrame=Capture_General.ScansPerFrame
     Blocks = Capture_General.Blocks
     BlockArray_frames = Capture_General.BlockArray_frames
     BlockArray_crops_top_pixels = Capture_General.BlockArray_crops_top_pixels
     BlockArray_crops_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
-    BlockArray_overlap_top_pixels = Capture_General.BlockArray_crops_top_pixels
-    BlockArray_overlap_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
+    BlockArray_overlap_top_pixels = [20, 10, 20, 20]
+    BlockArray_overlap_bottom_pixels = [38, 38, 20, 38]
 
 Capture_G = Capture_R
 Capture_B = Capture_R
@@ -41,8 +41,6 @@ def maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2):
     return max_accumulated_intensity_index_list
 
 def maxAccumulatedIntenstyIndex(column_region1, column_region2):
-    b = 1
-
     rows = column_region1.shape[0]
 
     max_accumulated_intensity = 0
@@ -81,11 +79,18 @@ def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
     print(curve_list)
 
     curve_img = np.zeros((overlap_top+overlap_bottom, 4608))
+    curve_img_mask = np.zeros((overlap_top + overlap_bottom, 4608))
     for k, index in enumerate(curve_list):
         curve_img[:index, k] = 255
+        curve_img_mask[:index, k] = 1
     cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
 
-    img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1 - w_expand) * overlap_region1 + w_expand * overlap_region2
+    overlap_region = (1-w)*overlap_region1 + w*overlap_region2
+    cv2.imwrite(f'./curve/curve-{i}-up-down-merged.png', overlap_region)
+
+    img_new[row1 - overlap_top - overlap_bottom:row1, :] = curve_img_mask * overlap_region1 + (1-curve_img_mask) * overlap_region2
+    cv2.imwrite(f'./curve/curve-{i}-up-down-merged-new.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
+
     img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
 
     return img_new
@@ -201,7 +206,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
     return img_up
 
-path = r'D:\Projects\Dataset\20240319\1\Record-Capture-2024-03-19-10-58-18.221'
+path = r'D:\Projects\Dataset\20240318\eye4\Record-Capture-2024-03-18-17-38-52.312'
 image_list = glob.glob(f'{path}/*.bmp')
 
 
@@ -221,7 +226,7 @@ CONCAT_ONLY = False
 G_blend = rgbChannelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
 cv2.imwrite(f'./G.png', G_blend)
 # B_blend = rgbChannelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
-# cv2.imwrite(f'./B.png', cv2.flip(B_blend, 0))
+# cv2.imwrite(f'./B.png', B_blend)
 # print(R_fusion.shape, G_fusion.shape)
 # cv2.merge 实现图像通道的合并
 # imgMerge = cv2.merge([B_blend, G_blend, R_blend])
