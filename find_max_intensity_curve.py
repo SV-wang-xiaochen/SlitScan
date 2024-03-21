@@ -8,17 +8,17 @@ import time
 class Capture_General:
     ScansPerFrame=90
     Blocks = 4
-    BlockArray_frames = [30, 30+15, 30+15+15, 30+15+15+30]
-    BlockArray_crops_top_pixels = [20, 10, 88, 20]
-    BlockArray_crops_bottom_pixels = [38, 98, 20, 38]
+    BlockArray_frames = [22, 22+22, 22+22+22, 22+22+22+22]
+    BlockArray_crops_top_pixels = [8, 8, 8, 8]
+    BlockArray_crops_bottom_pixels = [4, 4, 4, 4]
 class Capture_R:
     ScansPerFrame=Capture_General.ScansPerFrame
     Blocks = Capture_General.Blocks
     BlockArray_frames = Capture_General.BlockArray_frames
     BlockArray_crops_top_pixels = Capture_General.BlockArray_crops_top_pixels
     BlockArray_crops_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
-    BlockArray_overlap_top_pixels = [20, 10, 20, 20]
-    BlockArray_overlap_bottom_pixels = [38, 38, 20, 38]
+    BlockArray_overlap_top_pixels = [8, 8, 8, 8]
+    BlockArray_overlap_bottom_pixels = [4, 4, 4, 4]
 
 Capture_G = Capture_R
 Capture_B = Capture_R
@@ -97,7 +97,7 @@ def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
 
 
 def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
-    label_matrix = np.zeros((4608, 4800))
+    label_matrix = np.zeros((4800, 4608))
     for i in range(start_length, end_length):
         print(i)
         if i < Capture.BlockArray_frames[0]:
@@ -175,13 +175,13 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
         else:
             if i == start_length:
                 # Read the BMP strip
-                img_up = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
+                img_up = cv2.flip(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), 0)
 
                 img_up = img_up[up_crop_top:, :]
             elif i == end_length-1:
                 img_up = img_up[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
 
-                img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
+                img_down = cv2.flip(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), 0)
 
                 img_down = img_down[down_crop_top - overlap_top:, :]
 
@@ -192,7 +192,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
             else:
                 img_up = img_up[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
 
-                img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
+                img_down = cv2.flip(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), 0)
 
                 img_down = img_down[down_crop_top - overlap_top:, :]
 
@@ -206,8 +206,8 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
     return img_up
 
-path = r'D:\Projects\Dataset\20240318\eye4\Record-Capture-2024-03-18-17-38-52.312'
-image_list = glob.glob(f'{path}/*.bmp')
+path = r'D:\Projects\Dataset\20240321\3\Record-Capture-2024-03-21-16-58-33.164'
+image_list = glob.glob(f'{path}/*.png')
 
 
 ScansPerFrame = int(len(image_list)/3)
