@@ -30,15 +30,16 @@ def calWeight(overlap_top, overlap_bottom):
     return y
 
 def maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2):
-    columns = overlap_region1.shape[1]
-    max_accumulated_intensity_index_list = []
-    for i in range(columns):
-        column_region1 = overlap_region1[:, i]
-        column_region2 = overlap_region2[:, i]
-        max_accumulated_intensity_index = maxAccumulatedIntenstyIndex(column_region1, column_region2)
-        max_accumulated_intensity_index_list.append(max_accumulated_intensity_index)
-        max_accumulated_intensity_index_array = np.array(max_accumulated_intensity_index_list)
-    return max_accumulated_intensity_index_list
+    rows = overlap_region1.shape[0]
+    acc_array = np.zeros((rows, 4608))
+    for i in range(rows):
+        acc_region1 = np.sum(overlap_region1[:i],0)
+        acc_region2 = np.sum(overlap_region2[i:],0)
+        acc_array[i,:] = acc_region1 + acc_region2
+
+    max_accumulated_intensity = np.argmax(acc_array, 0)
+
+    return max_accumulated_intensity
 
 def maxAccumulatedIntenstyIndex(column_region1, column_region2):
     rows = column_region1.shape[0]
@@ -47,12 +48,9 @@ def maxAccumulatedIntenstyIndex(column_region1, column_region2):
     max_accumulated_intensity_index = 0
 
     for i in range(0, rows):
-        accumulated_intensity1 = 0
-        accumulated_intensity2 = 0
-        for j in range(0, i+1):
-            accumulated_intensity1 += column_region1[j]
-        for k in range(i+1, rows):
-            accumulated_intensity2 += column_region2[k]
+        accumulated_intensity1 = np.sum(column_region1[:i])
+        accumulated_intensity2 = np.sum(column_region2[i:])
+
         if (accumulated_intensity1+accumulated_intensity2) > max_accumulated_intensity:
             max_accumulated_intensity = accumulated_intensity1+accumulated_intensity2
             max_accumulated_intensity_index = i
