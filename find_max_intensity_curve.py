@@ -6,19 +6,19 @@ from hist_matching import hist_matching
 import time
 
 class Capture_General:
-    ScansPerFrame=90
+    ScansPerFrame=88
     Blocks = 4
     BlockArray_frames = [22, 22+22, 22+22+22, 22+22+22+22]
-    BlockArray_crops_top_pixels = [8, 8, 8, 8]
-    BlockArray_crops_bottom_pixels = [4, 4, 4, 4]
+    BlockArray_crops_top_pixels = [36, 44, 48, 52]
+    BlockArray_crops_bottom_pixels = [68, 60, 56, 52]
 class Capture_R:
     ScansPerFrame=Capture_General.ScansPerFrame
     Blocks = Capture_General.Blocks
     BlockArray_frames = Capture_General.BlockArray_frames
     BlockArray_crops_top_pixels = Capture_General.BlockArray_crops_top_pixels
     BlockArray_crops_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
-    BlockArray_overlap_top_pixels = [8, 8, 8, 8]
-    BlockArray_overlap_bottom_pixels = [4, 4, 4, 4]
+    BlockArray_overlap_top_pixels = [36, 44, 48, 52]
+    BlockArray_overlap_bottom_pixels = [68, 60, 56, 52]
 
 Capture_G = Capture_R
 Capture_B = Capture_R
@@ -47,12 +47,9 @@ def maxAccumulatedIntenstyIndex(column_region1, column_region2):
     max_accumulated_intensity_index = 0
 
     for i in range(0, rows):
-        accumulated_intensity1 = 0
-        accumulated_intensity2 = 0
-        for j in range(0, i+1):
-            accumulated_intensity1 += column_region1[j]
-        for k in range(i+1, rows):
-            accumulated_intensity2 += column_region2[k]
+        accumulated_intensity1 = np.sum(column_region1[:i])
+        accumulated_intensity2 = np.sum(column_region2[i:])
+
         if (accumulated_intensity1+accumulated_intensity2) > max_accumulated_intensity:
             max_accumulated_intensity = accumulated_intensity1+accumulated_intensity2
             max_accumulated_intensity_index = i
@@ -206,7 +203,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
     return img_up
 
-path = r'D:\Projects\Dataset\20240321\3\Record-Capture-2024-03-21-16-58-33.164'
+path = r'D:\Projects\Dataset\20240321\160\Record-Capture-2024-03-21-19-51-48.715'
 image_list = glob.glob(f'{path}/*.png')
 
 
