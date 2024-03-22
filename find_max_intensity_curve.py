@@ -30,15 +30,16 @@ def calWeight(overlap_top, overlap_bottom):
     return y
 
 def maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2):
-    columns = overlap_region1.shape[1]
-    max_accumulated_intensity_index_list = []
-    for i in range(columns):
-        column_region1 = overlap_region1[:, i]
-        column_region2 = overlap_region2[:, i]
-        max_accumulated_intensity_index = maxAccumulatedIntenstyIndex(column_region1, column_region2)
-        max_accumulated_intensity_index_list.append(max_accumulated_intensity_index)
-        max_accumulated_intensity_index_array = np.array(max_accumulated_intensity_index_list)
-    return max_accumulated_intensity_index_list
+    rows = overlap_region1.shape[0]
+    acc_array = np.zeros((rows, 4608))
+    for i in range(rows):
+        acc_region1 = np.sum(overlap_region1[:i],0)
+        acc_region2 = np.sum(overlap_region2[i:],0)
+        acc_array[i,:] = acc_region1 + acc_region2
+
+    max_accumulated_intensity = np.argmax(acc_array, 0)
+
+    return max_accumulated_intensity
 
 def maxAccumulatedIntenstyIndex(column_region1, column_region2):
     rows = column_region1.shape[0]
@@ -72,12 +73,12 @@ def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
     overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
     cv2.imwrite(f'./curve/curve-{i}-up.png', overlap_region1)
     cv2.imwrite(f'./curve/curve-{i}-down.png', overlap_region2)
-    curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
-    print(curve_list)
+    curve_array = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
+    print(curve_array)
 
     curve_img = np.zeros((overlap_top+overlap_bottom, 4608))
     curve_img_mask = np.zeros((overlap_top + overlap_bottom, 4608))
-    for k, index in enumerate(curve_list):
+    for k, index in enumerate(curve_array):
         curve_img[:index, k] = 255
         curve_img_mask[:index, k] = 1
     cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
@@ -229,5 +230,5 @@ cv2.imwrite(f'./G.png', G_blend)
 # imgMerge = cv2.merge([B_blend, G_blend, R_blend])
 
 save_file_name = f'RGB-{Capture_R.BlockArray_overlap_top_pixels[0]}-{Capture_R.BlockArray_overlap_top_pixels[1]}-{Capture_R.BlockArray_overlap_top_pixels[2]}-{Capture_R.BlockArray_overlap_top_pixels[3]}-{Capture_R.BlockArray_overlap_bottom_pixels[0]}-{Capture_R.BlockArray_overlap_bottom_pixels[1]}-{Capture_R.BlockArray_overlap_bottom_pixels[2]}-{Capture_R.BlockArray_overlap_bottom_pixels[3]}'
-cv2.imwrite(f'./{save_file_name}.png', G_blend)
+cv2.imwrite(f'./{save_file_name}.png', cv2.flip(G_blend, 1))
 print(f'./{save_file_name}.png')
