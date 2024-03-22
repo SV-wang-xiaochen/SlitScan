@@ -78,9 +78,15 @@ def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
 
     curve_img = np.zeros((overlap_top+overlap_bottom, 4608))
     curve_img_mask = np.zeros((overlap_top + overlap_bottom, 4608))
+    buffer_top = 5
+    buffer_down = 5
     for k, index in enumerate(curve_array):
         curve_img[:index, k] = 255
-        curve_img_mask[:index, k] = 1
+        if index<buffer_top or (overlap_top+overlap_bottom<index+buffer_down):
+            curve_img_mask[:index, k] = 1
+        else:
+            curve_img_mask[:index-buffer_top, k] = 1
+            curve_img_mask[index-buffer_top:index + buffer_down, k] = 1 - calWeight(buffer_top, buffer_down)
     cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
 
     overlap_region = (1-w)*overlap_region1 + w*overlap_region2
