@@ -4,21 +4,40 @@ import cv2
 import numpy as np
 from hist_matching import hist_matching
 import time
+import configparser
 
+data_path = r'D:\Projects\Dataset\20240322\256\hank'
+ini_path = f'{data_path}\IngresSettings_2024-03-22-19-15-19.937.ini'
+img_path = f'{data_path}\Record-Capture-2024-03-22-19-15-18.788'
+
+config = configparser.ConfigParser()
+config.read(ini_path)
+
+block_frames_0 = int(config.get('Hardware.Camera', 'Capture.BlockArray_0_frames'))
+block_frames_1 = int(config.get('Hardware.Camera', 'Capture.BlockArray_1_frames'))
+block_frames_2 = int(config.get('Hardware.Camera', 'Capture.BlockArray_2_frames'))
+block_frames_3 = int(config.get('Hardware.Camera', 'Capture.BlockArray_3_frames'))
 class Capture_General:
-    ScansPerFrame=88
-    Blocks = 4
-    BlockArray_frames = [22, 22+22, 22+22+22, 22+22+22+22]
-    BlockArray_crops_top_pixels = [84, 92, 96, 100]
-    BlockArray_crops_bottom_pixels = [116, 108, 104, 100]
+    ScansPerFrame = int(config.get('Hardware.Camera', 'Capture.ScansPerFrame'))
+    Blocks = int(config.get('Hardware.Camera', 'Capture.Blocks'))
+    BlockArray_frames = [block_frames_0, block_frames_0+block_frames_1, block_frames_0+block_frames_1+block_frames_2,
+                         block_frames_0+block_frames_1+block_frames_2+block_frames_3]
+    BlockArray_crops_top_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_top_pixels')),
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_top_pixels')),
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_top_pixels')),
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_top_pixels'))]
+    BlockArray_crops_bottom_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_bottom_pixels')),
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_bottom_pixels')),
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_bottom_pixels')),
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_bottom_pixels'))]
 class Capture_R:
     ScansPerFrame=Capture_General.ScansPerFrame
     Blocks = Capture_General.Blocks
     BlockArray_frames = Capture_General.BlockArray_frames
     BlockArray_crops_top_pixels = Capture_General.BlockArray_crops_top_pixels
     BlockArray_crops_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
-    BlockArray_overlap_top_pixels = [84, 92, 96, 100]
-    BlockArray_overlap_bottom_pixels = [116, 108, 104, 100]
+    BlockArray_overlap_top_pixels = Capture_General.BlockArray_crops_top_pixels
+    BlockArray_overlap_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
 
 Capture_G = Capture_R
 Capture_B = Capture_R
@@ -71,26 +90,26 @@ def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
 
     overlap_region1 = img1[row1 - overlap_top - overlap_bottom:row1, :]
     overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
-    # cv2.imwrite(f'./curve/curve-{i}-up.png', overlap_region1)
-    # cv2.imwrite(f'./curve/curve-{i}-down.png', overlap_region2)
-    # curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
-    # print(curve_list)
-    #
-    # curve_img = np.zeros((overlap_top+overlap_bottom, 4608))
-    # curve_img_mask = np.zeros((overlap_top + overlap_bottom, 4608))
-    # for k, index in enumerate(curve_list):
-    #     curve_img[:index, k] = 255
-    #     curve_img_mask[:index, k] = 1
-    # cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
+    cv2.imwrite(f'./curve/curve-{i}-up.png', overlap_region1)
+    cv2.imwrite(f'./curve/curve-{i}-down.png', overlap_region2)
+    curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
+    print(curve_list)
+
+    curve_img = np.zeros((overlap_top+overlap_bottom, 4608))
+    curve_img_mask = np.zeros((overlap_top + overlap_bottom, 4608))
+    for k, index in enumerate(curve_list):
+        curve_img[:index, k] = 255
+        curve_img_mask[:index, k] = 1
+    cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
     #
     # overlap_region = (1-w)*overlap_region1 + w*overlap_region2
     # cv2.imwrite(f'./curve/curve-{i}-up-down-merged.png', overlap_region)
 
-    # img_new[row1 - overlap_top - overlap_bottom:row1, :] = curve_img_mask * overlap_region1 + (1-curve_img_mask) * overlap_region2
-    # cv2.imwrite(f'./curve/curve-{i}-up-down-merged-new.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
-
-    img_new[row1 - overlap_top - overlap_bottom:row1, :] = np.maximum(overlap_region1, overlap_region2)
+    img_new[row1 - overlap_top - overlap_bottom:row1, :] = curve_img_mask * overlap_region1 + (1-curve_img_mask) * overlap_region2
     cv2.imwrite(f'./curve/curve-{i}-up-down-merged-new.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
+
+    # img_new[row1 - overlap_top - overlap_bottom:row1, :] = np.maximum(overlap_region1, overlap_region2)
+    # cv2.imwrite(f'./curve/curve-{i}-up-down-merged-new.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
 
     img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
 
@@ -205,7 +224,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
     return img_up[Capture.BlockArray_crops_top_pixels[0]:, :]
 
-path = r'D:\Projects\Dataset\20240322\256\-6.5D\2\Record-Capture-2024-03-22-14-46-51.177'
+path = r'D:\Projects\Dataset\20240322\256\hank\Record-Capture-2024-03-22-19-15-18.788'
 image_list = glob.glob(f'{path}/*.bmp')
 
 
