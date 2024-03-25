@@ -66,10 +66,12 @@ for img_path in img_list:
     mid_curve = (max_curve + min_curve) / 2
 
     # Plotting the curve
-    plt.plot(mid_curve)
+    plt.plot(aver_intensity)
+    tick_locations = [1000, 2000, 2304, 3000, 4000, 4608]
+    plt.xticks(tick_locations)
     ax = plt.gca()  # you first need to get the axis handle
     ax.set_aspect(3)  # sets the height to width ratio to 1.5.
-    plt.ylim(50, 150)
+    # plt.ylim(50, 150)
     plt.tight_layout()
     plt.show()
 
