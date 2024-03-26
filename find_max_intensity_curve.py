@@ -84,40 +84,46 @@ def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
     row2, col = img2.shape
 
     img_new = np.zeros((row1 + row2 - overlap_top - overlap_bottom, col))
+    label_new = np.zeros((row1 + row2 - overlap_top - overlap_bottom, col))
+
     img_new[:row1 - overlap_top - overlap_bottom, :] = img1[:row1 - overlap_top - overlap_bottom, :]
+    label_new[:row1 - overlap_top - overlap_bottom, :] = label_matrix[:row1 - overlap_top - overlap_bottom, :]
     w = np.reshape(w, (overlap_top+overlap_bottom, 1))
     w_expand = np.tile(w, (1, col))
 
     overlap_region1 = img1[row1 - overlap_top - overlap_bottom:row1, :]
+    overlap_label1 = label_matrix[row1 - overlap_top - overlap_bottom:row1, :]
     overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
     cv2.imwrite(f'./curve/curve-{i}-up.png', overlap_region1)
     cv2.imwrite(f'./curve/curve-{i}-down.png', overlap_region2)
-    curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
-    print(curve_list)
-
-    curve_img = np.zeros((overlap_top+overlap_bottom, 4608))
-    curve_img_mask = np.zeros((overlap_top + overlap_bottom, 4608))
-    for k, index in enumerate(curve_list):
-        curve_img[:index, k] = 255
-        curve_img_mask[:index, k] = 1
-    cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
+    # curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
+    # print(curve_list)
     #
-    # overlap_region = (1-w)*overlap_region1 + w*overlap_region2
-    # cv2.imwrite(f'./curve/curve-{i}-up-down-merged.png', overlap_region)
-
-    img_new[row1 - overlap_top - overlap_bottom:row1, :] = curve_img_mask * overlap_region1 + (1-curve_img_mask) * overlap_region2
-    cv2.imwrite(f'./curve/curve-{i}-up-down-merged-new.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
-
-    # img_new[row1 - overlap_top - overlap_bottom:row1, :] = np.maximum(overlap_region1, overlap_region2)
+    # curve_img = np.zeros((overlap_top+overlap_bottom, 4608))
+    # curve_img_mask = np.zeros((overlap_top + overlap_bottom, 4608))
+    # for k, index in enumerate(curve_list):
+    #     curve_img[:index, k] = 255
+    #     curve_img_mask[:index, k] = 1
+    # cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
+    # #
+    # # overlap_region = (1-w)*overlap_region1 + w*overlap_region2
+    # # cv2.imwrite(f'./curve/curve-{i}-up-down-merged.png', overlap_region)
+    #
+    # img_new[row1 - overlap_top - overlap_bottom:row1, :] = curve_img_mask * overlap_region1 + (1-curve_img_mask) * overlap_region2
     # cv2.imwrite(f'./curve/curve-{i}-up-down-merged-new.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
 
-    img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
+    img_new[row1 - overlap_top - overlap_bottom:row1, :] = np.maximum(overlap_region1, overlap_region2)
+    label_new[row1 - overlap_top - overlap_bottom:row1, :] = np.where(overlap_region1 >= overlap_region2, overlap_label1, i)
 
-    return img_new
+    cv2.imwrite(f'./curve/curve-{i}-up-down-merged-max.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
+
+    img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
+    label_new[row1:, :] = i
+
+    return img_new, label_new
 
 
 def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
-    label_matrix = np.zeros((4608, 4800))
     for i in range(start_length, end_length):
         print(i)
         if i < Capture.BlockArray_frames[0]:
@@ -195,20 +201,22 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
             if i == start_length:
                 # Read the BMP strip
                 img_up = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
-
+                label_matrix = np.zeros(img_up.shape)
             elif i == end_length-1:
                 img_up = img_up[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
+                label_matrix = label_matrix[:img_up.shape[0] - (up_crop_bottom - overlap_bottom), :]
 
                 img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
 
                 img_down = img_down[down_crop_top - overlap_top:, :]
 
-                img_up = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 img_up = img_up[:-down_crop_bottom, :]
 
             else:
                 img_up = img_up[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
+                label_matrix = label_matrix[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
 
                 img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
 
@@ -217,12 +225,12 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
                 t1 = time.time()
 
-                img_up = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 t2 = time.time()
                 print(f"t2-t1:{t2-t1}")
 
-    return img_up[Capture.BlockArray_crops_top_pixels[0]:, :]
+    return img_up[Capture.BlockArray_crops_top_pixels[0]:, :], label_matrix[Capture.BlockArray_crops_top_pixels[0]:, :]
 
 path = r'D:\Projects\Dataset\20240322\256\hank\Record-Capture-2024-03-22-19-15-18.788'
 image_list = glob.glob(f'{path}/*.bmp')
@@ -241,7 +249,7 @@ end_length = len(R_list)
 CONCAT_ONLY = False
 # R_blend = rgbChannelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
 # cv2.imwrite(f'./R.png', cv2.flip(R_blend, 0))
-G_blend = rgbChannelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
+G_blend, label_map = rgbChannelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
 cv2.imwrite(f'./G.png', G_blend)
 # B_blend = rgbChannelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
 # cv2.imwrite(f'./B.png', B_blend)
@@ -252,3 +260,4 @@ cv2.imwrite(f'./G.png', G_blend)
 save_file_name = f'RGB-{Capture_R.BlockArray_overlap_top_pixels[0]}-{Capture_R.BlockArray_overlap_top_pixels[1]}-{Capture_R.BlockArray_overlap_top_pixels[2]}-{Capture_R.BlockArray_overlap_top_pixels[3]}-{Capture_R.BlockArray_overlap_bottom_pixels[0]}-{Capture_R.BlockArray_overlap_bottom_pixels[1]}-{Capture_R.BlockArray_overlap_bottom_pixels[2]}-{Capture_R.BlockArray_overlap_bottom_pixels[3]}'
 cv2.imwrite(f'./{save_file_name}.png', G_blend)
 print(f'./{save_file_name}.png')
+cv2.imwrite(f'./{save_file_name}-label.png', label_map)
