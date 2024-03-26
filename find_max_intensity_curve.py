@@ -19,6 +19,7 @@ block_frames_2 = int(config.get('Hardware.Camera', 'Capture.BlockArray_2_frames'
 block_frames_3 = int(config.get('Hardware.Camera', 'Capture.BlockArray_3_frames'))
 class Capture_General:
     ScansPerFrame = int(config.get('Hardware.Camera', 'Capture.ScansPerFrame'))
+    Strip_height = int(config.get('Hardware.Camera', 'Capture.Strip.Height'))
     Blocks = int(config.get('Hardware.Camera', 'Capture.Blocks'))
     BlockArray_frames = [block_frames_0, block_frames_0+block_frames_1, block_frames_0+block_frames_1+block_frames_2,
                          block_frames_0+block_frames_1+block_frames_2+block_frames_3]
@@ -31,7 +32,8 @@ class Capture_General:
                                    int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_bottom_pixels')),
                                    int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_bottom_pixels'))]
 class Capture_R:
-    ScansPerFrame=Capture_General.ScansPerFrame
+    ScansPerFrame = Capture_General.ScansPerFrame
+    Strip_height = Capture_General.Strip_height
     Blocks = Capture_General.Blocks
     BlockArray_frames = Capture_General.BlockArray_frames
     BlockArray_crops_top_pixels = Capture_General.BlockArray_crops_top_pixels
@@ -122,59 +124,62 @@ def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
 
     return img_new, label_new
 
+def getSystemParams(i, Capture):
+    if i < Capture.BlockArray_frames[0]:
+        up_crop_top = Capture.BlockArray_crops_top_pixels[0]
+        up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
+        down_crop_top = Capture.BlockArray_crops_top_pixels[0]
+        down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
+        overlap_top = Capture.BlockArray_overlap_top_pixels[0]
+        overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[0]
+    elif i == Capture.BlockArray_frames[0]:
+        up_crop_top = Capture.BlockArray_crops_top_pixels[0]
+        up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
+        down_crop_top = Capture.BlockArray_crops_top_pixels[1]
+        down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+        overlap_top = Capture.BlockArray_overlap_top_pixels[1]
+        overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[0]
+    elif i < Capture.BlockArray_frames[1]:
+        up_crop_top = Capture.BlockArray_crops_top_pixels[1]
+        up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+        down_crop_top = Capture.BlockArray_crops_top_pixels[1]
+        down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+        overlap_top = Capture.BlockArray_overlap_top_pixels[1]
+        overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[1]
+    elif i == Capture.BlockArray_frames[1]:
+        up_crop_top = Capture.BlockArray_crops_top_pixels[1]
+        up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
+        down_crop_top = Capture.BlockArray_crops_top_pixels[2]
+        down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+        overlap_top = Capture.BlockArray_overlap_top_pixels[2]
+        overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[1]
+    elif i < Capture.BlockArray_frames[2]:
+        up_crop_top = Capture.BlockArray_crops_top_pixels[2]
+        up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+        down_crop_top = Capture.BlockArray_crops_top_pixels[2]
+        down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+        overlap_top = Capture.BlockArray_overlap_top_pixels[2]
+        overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[2]
+    elif i == Capture.BlockArray_frames[2]:
+        up_crop_top = Capture.BlockArray_crops_top_pixels[2]
+        up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
+        down_crop_top = Capture.BlockArray_crops_top_pixels[3]
+        down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
+        overlap_top = Capture.BlockArray_overlap_top_pixels[3]
+        overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[2]
+    else:
+        up_crop_top = Capture.BlockArray_crops_top_pixels[3]
+        up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
+        down_crop_top = Capture.BlockArray_crops_top_pixels[3]
+        down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
+        overlap_top = Capture.BlockArray_overlap_top_pixels[3]
+        overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[3]
+    return up_crop_top, up_crop_bottom, down_crop_top, down_crop_bottom, overlap_top, overlap_bottom
 
 def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
     for i in range(start_length, end_length):
         print(i)
-        if i < Capture.BlockArray_frames[0]:
-            up_crop_top = Capture.BlockArray_crops_top_pixels[0]
-            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
-            down_crop_top = Capture.BlockArray_crops_top_pixels[0]
-            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
-            overlap_top = Capture.BlockArray_overlap_top_pixels[0]
-            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[0]
-        elif i == Capture.BlockArray_frames[0]:
-            up_crop_top = Capture.BlockArray_crops_top_pixels[0]
-            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[0]
-            down_crop_top = Capture.BlockArray_crops_top_pixels[1]
-            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
-            overlap_top = Capture.BlockArray_overlap_top_pixels[1]
-            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[0]
-        elif i < Capture.BlockArray_frames[1]:
-            up_crop_top = Capture.BlockArray_crops_top_pixels[1]
-            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
-            down_crop_top = Capture.BlockArray_crops_top_pixels[1]
-            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
-            overlap_top = Capture.BlockArray_overlap_top_pixels[1]
-            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[1]
-        elif i == Capture.BlockArray_frames[1]:
-            up_crop_top = Capture.BlockArray_crops_top_pixels[1]
-            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[1]
-            down_crop_top = Capture.BlockArray_crops_top_pixels[2]
-            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
-            overlap_top = Capture.BlockArray_overlap_top_pixels[2]
-            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[1]
-        elif i < Capture.BlockArray_frames[2]:
-            up_crop_top = Capture.BlockArray_crops_top_pixels[2]
-            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
-            down_crop_top = Capture.BlockArray_crops_top_pixels[2]
-            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
-            overlap_top = Capture.BlockArray_overlap_top_pixels[2]
-            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[2]
-        elif i == Capture.BlockArray_frames[2]:
-            up_crop_top = Capture.BlockArray_crops_top_pixels[2]
-            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[2]
-            down_crop_top = Capture.BlockArray_crops_top_pixels[3]
-            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
-            overlap_top = Capture.BlockArray_overlap_top_pixels[3]
-            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[2]
-        else:
-            up_crop_top = Capture.BlockArray_crops_top_pixels[3]
-            up_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
-            down_crop_top = Capture.BlockArray_crops_top_pixels[3]
-            down_crop_bottom = Capture.BlockArray_crops_bottom_pixels[3]
-            overlap_top = Capture.BlockArray_overlap_top_pixels[3]
-            overlap_bottom = Capture.BlockArray_overlap_bottom_pixels[3]
+        up_crop_top, up_crop_bottom, down_crop_top, down_crop_bottom, overlap_top, overlap_bottom = getSystemParams(i, Capture)
 
         if (overlap_top+overlap_bottom) == 0 or concat_only:
             print("Only concat. No blending.")
@@ -213,6 +218,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
                 img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 img_up = img_up[:-down_crop_bottom, :]
+                label_matrix = label_matrix[:-down_crop_bottom, :]
 
             else:
                 img_up = img_up[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
@@ -243,21 +249,43 @@ G_list = image_list[ScansPerFrame:ScansPerFrame*2]
 B_list = image_list[2*ScansPerFrame:ScansPerFrame*3]
 
 start_length = 0
-# end_length = 4
+# end_length = 30
 end_length = len(R_list)
 
 CONCAT_ONLY = False
 # R_blend = rgbChannelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
 # cv2.imwrite(f'./R.png', cv2.flip(R_blend, 0))
 G_blend, label_map = rgbChannelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
-cv2.imwrite(f'./G.png', G_blend)
+# cv2.imwrite(f'./G.png', G_blend)
 # B_blend = rgbChannelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
 # cv2.imwrite(f'./B.png', B_blend)
 # print(R_fusion.shape, G_fusion.shape)
 # cv2.merge 实现图像通道的合并
 # imgMerge = cv2.merge([B_blend, G_blend, R_blend])
 
+# Define your mapping function
+def my_mapping_function(x):
+    if x%2 == 0:
+        a = x
+    else:
+        a = (x-1)/2 + 128
+    return a  # Example mapping function that doubles each element
+
+# Apply the mapping function using vectorize
+label_map = np.uint8(np.vectorize(my_mapping_function)(label_map))
+label_map_color = cv2.cvtColor(label_map,cv2.COLOR_GRAY2BGR)
+line_index = Capture_G.Strip_height - Capture_G.BlockArray_crops_top_pixels[0] - Capture_G.BlockArray_crops_bottom_pixels[0]
+label_map_color = cv2.line(label_map_color, (0, line_index), (4608, line_index),(0, 255, 0), 1)
+
+for i in range(start_length, end_length):
+    up_crop_top, up_crop_bottom, down_crop_top, down_crop_bottom, overlap_top, overlap_bottom = getSystemParams(i, Capture_G)
+    if i == start_length:
+        line_index = Capture_G.Strip_height - up_crop_top - up_crop_bottom
+    else:
+        line_index = line_index + Capture_G.Strip_height - up_crop_top - up_crop_bottom
+    label_map_color = cv2.line(label_map_color, (0, line_index), (4608, line_index),(0, 255, 0), 1)
+
 save_file_name = f'RGB-{Capture_R.BlockArray_overlap_top_pixels[0]}-{Capture_R.BlockArray_overlap_top_pixels[1]}-{Capture_R.BlockArray_overlap_top_pixels[2]}-{Capture_R.BlockArray_overlap_top_pixels[3]}-{Capture_R.BlockArray_overlap_bottom_pixels[0]}-{Capture_R.BlockArray_overlap_bottom_pixels[1]}-{Capture_R.BlockArray_overlap_bottom_pixels[2]}-{Capture_R.BlockArray_overlap_bottom_pixels[3]}'
 cv2.imwrite(f'./{save_file_name}.png', G_blend)
 print(f'./{save_file_name}.png')
-cv2.imwrite(f'./{save_file_name}-label.png', label_map)
+cv2.imwrite(f'./{save_file_name}-label.png', label_map_color)
