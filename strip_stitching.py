@@ -2,13 +2,28 @@ import os
 import glob
 import cv2
 import numpy as np
-from hist_matching import hist_matching
 import time
 import configparser
 
-data_path = r'D:\Projects\Dataset\20240322\256\hank'
-ini_path = f'{data_path}\IngresSettings_2024-03-22-19-15-19.937.ini'
-img_path = f'{data_path}\Record-Capture-2024-03-22-19-15-18.788'
+INTERACTIVE_INPUT = True
+mode = int(input('采集的strip是否上下颠倒:1：是 2：否:')) if INTERACTIVE_INPUT else 2
+
+# Use glob to get a list of all first-level subfolders
+first_level_subfolders = glob.glob("./*/")
+
+img_path = ''
+for folder in first_level_subfolders:
+    if "Record-Capture" in folder:
+        img_path = folder
+print(img_path)
+
+# Use glob to get a list of all first-level files
+first_level_files = glob.glob(os.path.join("./*"))
+ini_path = ''
+for folder in first_level_files:
+    if "IngresSettings" in folder:
+        ini_path = folder
+print(ini_path)
 
 config = configparser.ConfigParser()
 config.read(ini_path)
@@ -178,7 +193,6 @@ def getSystemParams(i, Capture):
 
 def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
     for i in range(start_length, end_length):
-        print(i)
         up_crop_top, up_crop_bottom, down_crop_top, down_crop_bottom, overlap_top, overlap_bottom = getSystemParams(i, Capture)
 
         if (overlap_top+overlap_bottom) == 0 or concat_only:
@@ -205,13 +219,13 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
         else:
             if i == start_length:
                 # Read the BMP strip
-                img_up = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
+                img_up = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE) if mode == 2 else cv2.flip(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), 0)
                 label_matrix = np.zeros(img_up.shape)
             elif i == end_length-1:
                 img_up = img_up[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
                 label_matrix = label_matrix[:img_up.shape[0] - (up_crop_bottom - overlap_bottom), :]
 
-                img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
+                img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE) if mode == 2 else cv2.flip(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), 0)
 
                 img_down = img_down[down_crop_top - overlap_top:, :]
 
@@ -224,7 +238,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
                 img_up = img_up[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
                 label_matrix = label_matrix[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
 
-                img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE)
+                img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE) if mode == 2 else cv2.flip(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), 0)
 
                 img_down = img_down[down_crop_top - overlap_top:, :]
 
@@ -234,13 +248,12 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
                 img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 t2 = time.time()
-                print(f"t2-t1:{t2-t1}")
+                print(f"strip:{i}")
+                # print(f"t2-t1:{t2-t1}")
 
     return img_up[Capture.BlockArray_crops_top_pixels[0]:, :], label_matrix[Capture.BlockArray_crops_top_pixels[0]:, :]
 
-path = r'D:\Projects\Dataset\20240322\256\hank\Record-Capture-2024-03-22-19-15-18.788'
-image_list = glob.glob(f'{path}/*.bmp')
-
+image_list = glob.glob(f'{img_path}/*.bmp' if mode == 2 else f'{img_path}/*.png')
 
 ScansPerFrame = int(len(image_list)/3)
 print(ScansPerFrame)
@@ -263,29 +276,29 @@ G_blend, label_map = rgbChannelBlend(G_list, start_length, end_length, Capture_G
 # cv2.merge 实现图像通道的合并
 # imgMerge = cv2.merge([B_blend, G_blend, R_blend])
 
-# Define your mapping function
-def my_mapping_function(x):
-    if x%2 == 0:
-        a = x
-    else:
-        a = (x-1)/2 + 128
-    return a  # Example mapping function that doubles each element
-
-# Apply the mapping function using vectorize
-label_map = np.uint8(np.vectorize(my_mapping_function)(label_map))
-label_map_color = cv2.cvtColor(label_map,cv2.COLOR_GRAY2BGR)
-line_index = Capture_G.Strip_height - Capture_G.BlockArray_crops_top_pixels[0] - Capture_G.BlockArray_crops_bottom_pixels[0]
-label_map_color = cv2.line(label_map_color, (0, line_index), (4608, line_index),(0, 255, 0), 1)
-
-for i in range(start_length, end_length):
-    up_crop_top, up_crop_bottom, down_crop_top, down_crop_bottom, overlap_top, overlap_bottom = getSystemParams(i, Capture_G)
-    if i == start_length:
-        line_index = Capture_G.Strip_height - up_crop_top - up_crop_bottom
-    else:
-        line_index = line_index + Capture_G.Strip_height - up_crop_top - up_crop_bottom
-    label_map_color = cv2.line(label_map_color, (0, line_index), (4608, line_index),(0, 255, 0), 1)
-
 save_file_name = f'RGB-{Capture_R.BlockArray_overlap_top_pixels[0]}-{Capture_R.BlockArray_overlap_top_pixels[1]}-{Capture_R.BlockArray_overlap_top_pixels[2]}-{Capture_R.BlockArray_overlap_top_pixels[3]}-{Capture_R.BlockArray_overlap_bottom_pixels[0]}-{Capture_R.BlockArray_overlap_bottom_pixels[1]}-{Capture_R.BlockArray_overlap_bottom_pixels[2]}-{Capture_R.BlockArray_overlap_bottom_pixels[3]}'
 cv2.imwrite(f'./{save_file_name}.png', G_blend)
 print(f'./{save_file_name}.png')
-cv2.imwrite(f'./{save_file_name}-label.png', label_map_color)
+
+# # Define your mapping function
+# def my_mapping_function(x):
+#     if x%2 == 0:
+#         a = x
+#     else:
+#         a = (x-1)/2 + 128
+#     return a
+
+# # Apply the mapping function using vectorize
+# label_map = np.uint8(np.vectorize(my_mapping_function)(label_map))
+# label_map_color = cv2.cvtColor(label_map,cv2.COLOR_GRAY2BGR)
+# line_index = Capture_G.Strip_height - Capture_G.BlockArray_crops_top_pixels[0] - Capture_G.BlockArray_crops_bottom_pixels[0]
+# label_map_color = cv2.line(label_map_color, (0, line_index), (4608, line_index),(0, 255, 0), 1)
+#
+# for i in range(start_length, end_length):
+#     up_crop_top, up_crop_bottom, down_crop_top, down_crop_bottom, overlap_top, overlap_bottom = getSystemParams(i, Capture_G)
+#     if i == start_length:
+#         line_index = Capture_G.Strip_height - up_crop_top - up_crop_bottom
+#     else:
+#         line_index = line_index + Capture_G.Strip_height - up_crop_top - up_crop_bottom
+#     label_map_color = cv2.line(label_map_color, (0, line_index), (4608, line_index),(0, 255, 0), 1)
+# cv2.imwrite(f'./{save_file_name}-label.png', label_map_color)
