@@ -5,13 +5,13 @@ import numpy as np
 import glob
 
 mark_thickness = 2
-crop = 50
+crop = 30
 
 data_path = "./strips"
 result_path = "./strips/results"
 
 os.makedirs(result_path, exist_ok = True)
-img_list = glob.glob(f'{data_path}/*.bmp')
+img_list = glob.glob(f'{data_path}/*.png')
 
 for img_path in img_list:
     strip_color = cv2.imread(img_path)
@@ -72,8 +72,23 @@ for img_path in img_list:
     ax = plt.gca()  # you first need to get the axis handle
     ax.set_aspect(3)  # sets the height to width ratio to 1.5.
     # plt.ylim(50, 150)
+    plt.ylabel('Intensity')
+    plt.title('Average Intensitiy of Bright region')
     plt.tight_layout()
-    plt.show()
+    plt.savefig(f'{result_path}/{base_name}-Intensity.png', dpi=300)
+    plt.clf()
+
+    # Plotting the curve
+    plt.plot(bright_region_height)
+    tick_locations = [1000, 2000, 2304, 3000, 4000, 4608]
+    plt.xticks(tick_locations)
+    ax = plt.gca()  # you first need to get the axis handle
+    ax.set_aspect(3)  # sets the height to width ratio to 1.5.
+    plt.ylabel('Width')
+    plt.title('Width of Bright region')
+    plt.tight_layout()
+    plt.savefig(f'{result_path}/{base_name}-Width.png', dpi=300)
+    plt.clf()
 
     # plot middle point curve of bright region
     for x, y in enumerate(mid_curve):
