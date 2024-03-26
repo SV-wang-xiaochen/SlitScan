@@ -4,6 +4,29 @@ import cv2
 import numpy as np
 import time
 import configparser
+import math
+
+# Define the center and axes length of the ellipse
+Center = (2250, 2350)
+AxisLength = (2200, 2200)
+
+def find_ellipse_intersections(center, axes_length, line_x):
+    # Equation of the ellipse: ((x - h)^2 / a^2) + ((y - k)^2 / b^2) = 1
+    h = center[0]
+    k = center[1]
+    a = axes_length[0]
+    b = axes_length[1]
+
+    # Calculate the discriminant part of the quadratic equation
+    discriminant = a ** 2 - (line_x - h) ** 2
+
+    if discriminant >= 0:  # Check if the line intersects the ellipse
+        # Calculate y coordinates of intersections
+        y1 = int(k - math.sqrt(b ** 2 * discriminant) / a)
+        y2 = int(k + math.sqrt(b ** 2 * discriminant) / a)
+        return y1, y2
+    else:
+        return -1, -1  # Line does not intersect the ellipse
 
 INTERACTIVE_INPUT = True
 mode = int(input('采集的strip是否上下颠倒:1：是 2：否:')) if INTERACTIVE_INPUT else 2
@@ -93,7 +116,7 @@ def maxAccumulatedIntenstyIndex(column_region1, column_region2):
 
     return max_accumulated_intensity_index
 
-def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
+def imgBlend(img1, img2, label_matrix, i, Capture, overlap_top, overlap_bottom):
 
     w = calWeight(overlap_top, overlap_bottom)
 
@@ -113,6 +136,11 @@ def imgBlend(img1, img2, label_matrix, i, overlap_top, overlap_bottom):
     overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
     cv2.imwrite(f'./curve/curve-{i}-up.png', overlap_region1)
     cv2.imwrite(f'./curve/curve-{i}-down.png', overlap_region2)
+
+    # adjust intensity Y
+    intersection1, intersection2 = find_ellipse_intersections(Center, AxisLength, label_matrix[Capture.BlockArray_crops_top_pixels[0]:, :].shape[0])
+    if intersection1!= -1 and intersection2 !=-1:
+        print(intersection1, intersection2)
     # curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
     # print(curve_list)
     #
@@ -229,7 +257,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
                 img_down = img_down[down_crop_top - overlap_top:, :]
 
-                img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, Capture, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 img_up = img_up[:-down_crop_bottom, :]
                 label_matrix = label_matrix[:-down_crop_bottom, :]
@@ -245,7 +273,7 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
 
                 t1 = time.time()
 
-                img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, Capture, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 t2 = time.time()
                 print(f"strip:{i}")
