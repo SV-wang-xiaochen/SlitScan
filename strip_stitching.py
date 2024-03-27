@@ -141,6 +141,15 @@ def imgBlend(img1, img2, label_matrix, i, Capture, overlap_top, overlap_bottom):
     intersection1, intersection2 = find_ellipse_intersections(Center, AxisLength, label_matrix[Capture.BlockArray_crops_top_pixels[0]:, :].shape[0])
     if intersection1!= -1 and intersection2 !=-1:
         print(intersection1, intersection2)
+        overlap_region1_Y_sum = np.sum(overlap_region1[:, intersection1:intersection2], 1)
+        overlap_region2_Y_sum = np.sum(overlap_region2[:, intersection1:intersection2], 1)
+
+        overlap_region1_Y_sum_max = np.max(overlap_region1_Y_sum)
+        overlap_region2_Y_sum_max = np.max(overlap_region2_Y_sum)
+
+        factor1 = np.divide(overlap_region1_Y_sum_max, overlap_region1_Y_sum)
+        print(factor1)
+
     # curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
     # print(curve_list)
     #
