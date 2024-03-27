@@ -10,9 +10,10 @@ import math
 Center = (2250, 2350)
 AxisLength = (2200, 2200)
 valid_height = 76
-strip_after_crop = 24
-blend_pixel = 5
-
+blend_pixel = 10
+skip = 1
+strip_after_crop = 24 * skip
+crop_skip = (skip-1)*12
 def find_ellipse_intersections(center, axes_length, line_x):
     # Equation of the ellipse: ((x - h)^2 / a^2) + ((y - k)^2 / b^2) = 1
     h = center[0]
@@ -51,6 +52,8 @@ def adjustIntensity(img, i, Capture):
         region_to_adjust_done = np.multiply(region_to_adjust, factor_expand)
         # print(np.uint8(region_to_adjust))
         img_adjusted[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)] = region_to_adjust_done
+    else:
+        img_adjusted[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)] = region_to_adjust
 
     return img_adjusted
 
@@ -87,14 +90,14 @@ class Capture_General:
     Blocks = int(config.get('Hardware.Camera', 'Capture.Blocks'))
     BlockArray_frames = [block_frames_0, block_frames_0+block_frames_1, block_frames_0+block_frames_1+block_frames_2,
                          block_frames_0+block_frames_1+block_frames_2+block_frames_3]
-    BlockArray_crops_top_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_top_pixels')),
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_top_pixels')),
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_top_pixels')),
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_top_pixels'))]
-    BlockArray_crops_bottom_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_bottom_pixels')),
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_bottom_pixels')),
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_bottom_pixels')),
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_bottom_pixels'))]
+    BlockArray_crops_top_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_top_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_top_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_top_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_top_pixels'))-crop_skip]
+    BlockArray_crops_bottom_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_bottom_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_bottom_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_bottom_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_bottom_pixels'))-crop_skip]
 class Capture_R:
     ScansPerFrame = Capture_General.ScansPerFrame
     Strip_height = Capture_General.Strip_height
@@ -242,7 +245,7 @@ def getSystemParams(i, Capture):
     return up_crop_top, up_crop_bottom, down_crop_top, down_crop_bottom, overlap_top, overlap_bottom
 
 def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
-    for i in range(start_length, end_length):
+    for i in range(start_length, end_length, skip):
         up_crop_top, up_crop_bottom, down_crop_top, down_crop_bottom, overlap_top, overlap_bottom = getSystemParams(i, Capture)
 
         if (overlap_top+overlap_bottom) == 0 or concat_only:
