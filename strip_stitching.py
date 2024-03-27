@@ -9,6 +9,9 @@ import math
 # Define the center and axes length of the ellipse
 Center = (2250, 2350)
 AxisLength = (2200, 2200)
+valid_height = 76
+strip_after_crop = 24
+blend_pixel = 5
 
 def find_ellipse_intersections(center, axes_length, line_x):
     # Equation of the ellipse: ((x - h)^2 / a^2) + ((y - k)^2 / b^2) = 1
@@ -27,6 +30,29 @@ def find_ellipse_intersections(center, axes_length, line_x):
         return y1, y2
     else:
         return -1, -1  # Line does not intersect the ellipse
+
+def adjustIntensity(img, i, Capture):
+    img_adjusted = np.zeros(img.shape)
+    region_to_adjust = img[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)]
+    # print(region_to_adjust.shape)
+    # adjust intensity Y
+    intersection1, intersection2 = find_ellipse_intersections(Center, AxisLength, strip_after_crop*(i+0.5))
+    if intersection1 != -1 and intersection2 != -1:
+        # print(intersection1, intersection2)
+        region_to_adjust_sum = np.sum(region_to_adjust[:, intersection1:intersection2], 1)
+        # print(region_to_adjust_sum.shape)
+        region_to_process_max = np.max(region_to_adjust_sum)
+        # print(region_to_process_max)
+        factor = np.divide(region_to_process_max, region_to_adjust_sum)
+        # print(factor.shape)
+        factor_expand = np.transpose(np.tile(factor, (4608, 1)))
+        # print(factor_expand)
+
+        region_to_adjust_done = np.multiply(region_to_adjust, factor_expand)
+        # print(np.uint8(region_to_adjust))
+        img_adjusted[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)] = region_to_adjust_done
+
+    return img_adjusted
 
 INTERACTIVE_INPUT = True
 mode = int(input('采集的strip是否上下颠倒:1：是 2：否:')) if INTERACTIVE_INPUT else 2
@@ -76,8 +102,8 @@ class Capture_R:
     BlockArray_frames = Capture_General.BlockArray_frames
     BlockArray_crops_top_pixels = Capture_General.BlockArray_crops_top_pixels
     BlockArray_crops_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
-    BlockArray_overlap_top_pixels = Capture_General.BlockArray_crops_top_pixels
-    BlockArray_overlap_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
+    BlockArray_overlap_top_pixels = [blend_pixel, blend_pixel, blend_pixel, blend_pixel]
+    BlockArray_overlap_bottom_pixels = [blend_pixel, blend_pixel, blend_pixel, blend_pixel]
 
 Capture_G = Capture_R
 Capture_B = Capture_R
@@ -116,7 +142,7 @@ def maxAccumulatedIntenstyIndex(column_region1, column_region2):
 
     return max_accumulated_intensity_index
 
-def imgBlend(img1, img2, label_matrix, i, Capture, overlap_top, overlap_bottom):
+def imgBlend(img1, img2, i, Capture, overlap_top, overlap_bottom):
 
     w = calWeight(overlap_top, overlap_bottom)
 
@@ -124,31 +150,18 @@ def imgBlend(img1, img2, label_matrix, i, Capture, overlap_top, overlap_bottom):
     row2, col = img2.shape
 
     img_new = np.zeros((row1 + row2 - overlap_top - overlap_bottom, col))
-    label_new = np.zeros((row1 + row2 - overlap_top - overlap_bottom, col))
+    # label_new = np.zeros((row1 + row2 - overlap_top - overlap_bottom, col))
 
     img_new[:row1 - overlap_top - overlap_bottom, :] = img1[:row1 - overlap_top - overlap_bottom, :]
-    label_new[:row1 - overlap_top - overlap_bottom, :] = label_matrix[:row1 - overlap_top - overlap_bottom, :]
+    # label_new[:row1 - overlap_top - overlap_bottom, :] = label_matrix[:row1 - overlap_top - overlap_bottom, :]
     w = np.reshape(w, (overlap_top+overlap_bottom, 1))
     w_expand = np.tile(w, (1, col))
 
     overlap_region1 = img1[row1 - overlap_top - overlap_bottom:row1, :]
-    overlap_label1 = label_matrix[row1 - overlap_top - overlap_bottom:row1, :]
+    # overlap_label1 = label_matrix[row1 - overlap_top - overlap_bottom:row1, :]
     overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
     cv2.imwrite(f'./curve/curve-{i}-up.png', overlap_region1)
     cv2.imwrite(f'./curve/curve-{i}-down.png', overlap_region2)
-
-    # adjust intensity Y
-    intersection1, intersection2 = find_ellipse_intersections(Center, AxisLength, label_matrix[Capture.BlockArray_crops_top_pixels[0]:, :].shape[0])
-    if intersection1!= -1 and intersection2 !=-1:
-        print(intersection1, intersection2)
-        overlap_region1_Y_sum = np.sum(overlap_region1[:, intersection1:intersection2], 1)
-        overlap_region2_Y_sum = np.sum(overlap_region2[:, intersection1:intersection2], 1)
-
-        overlap_region1_Y_sum_max = np.max(overlap_region1_Y_sum)
-        overlap_region2_Y_sum_max = np.max(overlap_region2_Y_sum)
-
-        factor1 = np.divide(overlap_region1_Y_sum_max, overlap_region1_Y_sum)
-        print(factor1)
 
     # curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
     # print(curve_list)
@@ -160,21 +173,21 @@ def imgBlend(img1, img2, label_matrix, i, Capture, overlap_top, overlap_bottom):
     #     curve_img_mask[:index, k] = 1
     # cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
     # #
-    # # overlap_region = (1-w)*overlap_region1 + w*overlap_region2
+    overlap_region = (1-w)*overlap_region1 + w*overlap_region2
     # # cv2.imwrite(f'./curve/curve-{i}-up-down-merged.png', overlap_region)
     #
     # img_new[row1 - overlap_top - overlap_bottom:row1, :] = curve_img_mask * overlap_region1 + (1-curve_img_mask) * overlap_region2
     # cv2.imwrite(f'./curve/curve-{i}-up-down-merged-new.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
 
-    img_new[row1 - overlap_top - overlap_bottom:row1, :] = np.maximum(overlap_region1, overlap_region2)
-    label_new[row1 - overlap_top - overlap_bottom:row1, :] = np.where(overlap_region1 >= overlap_region2, overlap_label1, i)
+    img_new[row1 - overlap_top - overlap_bottom:row1, :] = overlap_region
+    # label_new[row1 - overlap_top - overlap_bottom:row1, :] = np.where(overlap_region1 >= overlap_region2, overlap_label1, i)
 
     cv2.imwrite(f'./curve/curve-{i}-up-down-merged-max.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
 
     img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
-    label_new[row1:, :] = i
+    # label_new[row1:, :] = i
 
-    return img_new, label_new
+    return img_new
 
 def getSystemParams(i, Capture):
     if i < Capture.BlockArray_frames[0]:
@@ -257,38 +270,43 @@ def rgbChannelBlend(image_list, start_length, end_length, Capture, concat_only):
             if i == start_length:
                 # Read the BMP strip
                 img_up = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE) if mode == 2 else cv2.flip(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), 0)
-                label_matrix = np.zeros(img_up.shape)
+                img_up = adjustIntensity(img_up, i, Capture)
+                # label_matrix = np.zeros(img_up.shape)
             elif i == end_length-1:
                 img_up = img_up[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
-                label_matrix = label_matrix[:img_up.shape[0] - (up_crop_bottom - overlap_bottom), :]
+                # label_matrix = label_matrix[:img_up.shape[0] - (up_crop_bottom - overlap_bottom), :]
 
                 img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE) if mode == 2 else cv2.flip(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), 0)
+
+                img_down = adjustIntensity(img_down, i, Capture)
 
                 img_down = img_down[down_crop_top - overlap_top:, :]
 
-                img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, Capture, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up = imgBlend(img_up, img_down, i, Capture, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 img_up = img_up[:-down_crop_bottom, :]
-                label_matrix = label_matrix[:-down_crop_bottom, :]
+                # label_matrix = label_matrix[:-down_crop_bottom, :]
 
             else:
                 img_up = img_up[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
-                label_matrix = label_matrix[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
+                # label_matrix = label_matrix[:img_up.shape[0]-(up_crop_bottom - overlap_bottom), :]
 
                 img_down = cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE) if mode == 2 else cv2.flip(cv2.imread(image_list[i], cv2.IMREAD_GRAYSCALE), 0)
+
+                img_down = adjustIntensity(img_down, i, Capture)
 
                 img_down = img_down[down_crop_top - overlap_top:, :]
 
 
                 t1 = time.time()
 
-                img_up, label_matrix = imgBlend(img_up, img_down, label_matrix, i, Capture, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
+                img_up = imgBlend(img_up, img_down, i, Capture, overlap_top=overlap_top, overlap_bottom=overlap_bottom)
 
                 t2 = time.time()
                 print(f"strip:{i}")
                 # print(f"t2-t1:{t2-t1}")
 
-    return img_up[Capture.BlockArray_crops_top_pixels[0]:, :], label_matrix[Capture.BlockArray_crops_top_pixels[0]:, :]
+    return img_up[Capture.BlockArray_crops_top_pixels[0]:, :]
 
 image_list = glob.glob(f'{img_path}/*.bmp' if mode == 2 else f'{img_path}/*.png')
 
@@ -305,7 +323,7 @@ end_length = len(R_list)
 CONCAT_ONLY = False
 # R_blend = rgbChannelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
 # cv2.imwrite(f'./R.png', cv2.flip(R_blend, 0))
-G_blend, label_map = rgbChannelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
+G_blend = rgbChannelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
 # cv2.imwrite(f'./G.png', G_blend)
 # B_blend = rgbChannelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
 # cv2.imwrite(f'./B.png', B_blend)
