@@ -33,6 +33,7 @@ def find_ellipse_intersections(center, axes_length, line_x):
         return -1, -1  # Line does not intersect the ellipse
 
 def adjustIntensity(img, i, Capture):
+    # first round
     img_adjusted = np.zeros(img.shape)
     region_to_adjust = img[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)]
     # print(region_to_adjust.shape)
@@ -52,6 +53,25 @@ def adjustIntensity(img, i, Capture):
         region_to_adjust_done = np.multiply(region_to_adjust, factor_expand)
         # print(np.uint8(region_to_adjust))
         img_adjusted[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)] = region_to_adjust_done
+    else:
+        img_adjusted[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)] = region_to_adjust
+
+    # second round
+    region_to_adjust = img_adjusted[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)]
+    if intersection1 != -1 and intersection2 != -1:
+        number_of_window = 20
+        window_width = int((intersection2 - intersection1)/number_of_window)
+        print(window_width)
+        for window_index in range(int(number_of_window/2), number_of_window-1):
+            window_to_adjust = region_to_adjust[:, intersection1+window_index*window_width:intersection1+(window_index+2)*window_width]
+            window_to_adjust_sum = np.sum(window_to_adjust, 1)
+            window_to_adjust_max = np.max(window_to_adjust_sum)
+            factor = np.divide(window_to_adjust_max, window_to_adjust_sum)
+            factor_expand = np.transpose(np.tile(factor, (window_width*2, 1)))
+            window_to_adjust_done = np.multiply(window_to_adjust, factor_expand)
+            region_to_adjust[:, intersection1 + window_index * window_width:intersection1 + (window_index + 2) * window_width] = window_to_adjust_done
+
+        img_adjusted[int((Capture.Strip_height - valid_height) / 2):int((Capture.Strip_height + valid_height) / 2)] = region_to_adjust
     else:
         img_adjusted[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)] = region_to_adjust
 
@@ -105,7 +125,7 @@ class Capture_R:
     BlockArray_frames = Capture_General.BlockArray_frames
     BlockArray_crops_top_pixels = Capture_General.BlockArray_crops_top_pixels
     BlockArray_crops_bottom_pixels = Capture_General.BlockArray_crops_bottom_pixels
-    BlockArray_overlap_top_pixels = [blend_pixel, blend_pixel, blend_pixel, blend_pixel]
+    BlockArray_overlap_top_pixels =[blend_pixel, blend_pixel, blend_pixel, blend_pixel]
     BlockArray_overlap_bottom_pixels = [blend_pixel, blend_pixel, blend_pixel, blend_pixel]
 
 Capture_G = Capture_R
@@ -176,13 +196,14 @@ def imgBlend(img1, img2, i, Capture, overlap_top, overlap_bottom):
     #     curve_img_mask[:index, k] = 1
     # cv2.imwrite(f'./curve/curve-{i}.png', curve_img)
     # #
-    overlap_region = (1-w)*overlap_region1 + w*overlap_region2
-    # # cv2.imwrite(f'./curve/curve-{i}-up-down-merged.png', overlap_region)
     #
     # img_new[row1 - overlap_top - overlap_bottom:row1, :] = curve_img_mask * overlap_region1 + (1-curve_img_mask) * overlap_region2
     # cv2.imwrite(f'./curve/curve-{i}-up-down-merged-new.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
 
-    img_new[row1 - overlap_top - overlap_bottom:row1, :] = overlap_region
+    img_new[row1 - overlap_top - overlap_bottom:row1, :] = (1-w)*overlap_region1 + w*overlap_region2
+    # # cv2.imwrite(f'./curve/curve-{i}-up-down-merged.png', overlap_region)
+
+    # img_new[row1 - overlap_top - overlap_bottom:row1, :] = np.maximum(overlap_region1, overlap_region2)
     # label_new[row1 - overlap_top - overlap_bottom:row1, :] = np.where(overlap_region1 >= overlap_region2, overlap_label1, i)
 
     cv2.imwrite(f'./curve/curve-{i}-up-down-merged-max.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
