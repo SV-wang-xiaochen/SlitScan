@@ -59,17 +59,28 @@ def adjustIntensity(img, i, Capture):
     # second round
     region_to_adjust = img_adjusted[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)]
     if intersection1 != -1 and intersection2 != -1:
-        number_of_window = 20
+        number_of_window = 10
+        number_of_overlap_window = 3
         window_width = int((intersection2 - intersection1)/number_of_window)
         print(window_width)
-        for window_index in range(int(number_of_window/2), number_of_window-1):
-            window_to_adjust = region_to_adjust[:, intersection1+window_index*window_width:intersection1+(window_index+2)*window_width]
+        for window_index in range(int(number_of_window/2), number_of_window-number_of_overlap_window):
+            window_to_adjust = region_to_adjust[:, intersection1+window_index*window_width:intersection1+(window_index+number_of_overlap_window+1)*window_width]
             window_to_adjust_sum = np.sum(window_to_adjust, 1)
             window_to_adjust_max = np.max(window_to_adjust_sum)
             factor = np.divide(window_to_adjust_max, window_to_adjust_sum)
-            factor_expand = np.transpose(np.tile(factor, (window_width*2, 1)))
+            factor_expand = np.transpose(np.tile(factor, (window_width*(number_of_overlap_window+1), 1)))
             window_to_adjust_done = np.multiply(window_to_adjust, factor_expand)
-            region_to_adjust[:, intersection1 + window_index * window_width:intersection1 + (window_index + 2) * window_width] = window_to_adjust_done
+            region_to_adjust[:, intersection1 + window_index * window_width:intersection1 + (window_index+number_of_overlap_window+1) * window_width] = window_to_adjust_done
+
+        for window_index in range(int(number_of_window/2), number_of_overlap_window, -1):
+            window_to_adjust = region_to_adjust[:, intersection1+window_index*window_width:intersection1+(window_index+number_of_overlap_window+1)*window_width]
+            window_to_adjust = region_to_adjust[:, intersection1 + (window_index - number_of_overlap_window - 1) * window_width:intersection1 + window_index * window_width]
+            window_to_adjust_sum = np.sum(window_to_adjust, 1)
+            window_to_adjust_max = np.max(window_to_adjust_sum)
+            factor = np.divide(window_to_adjust_max, window_to_adjust_sum)
+            factor_expand = np.transpose(np.tile(factor, (window_width*(number_of_overlap_window+1), 1)))
+            window_to_adjust_done = np.multiply(window_to_adjust, factor_expand)
+            region_to_adjust[:, intersection1 + (window_index - number_of_overlap_window - 1) * window_width:intersection1 + window_index * window_width] = window_to_adjust_done
 
         img_adjusted[int((Capture.Strip_height - valid_height) / 2):int((Capture.Strip_height + valid_height) / 2)] = region_to_adjust
     else:
