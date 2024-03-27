@@ -9,8 +9,8 @@ import math
 # Define the center and axes length of the ellipse
 Center = (2250, 2350)
 AxisLength = (2200, 2200)
-valid_height = 76
-blend_pixel = 10
+valid_height = 70
+blend_pixel = 1
 skip = 1
 strip_after_crop = 24 * skip
 crop_skip = (skip-1)*12
@@ -40,8 +40,10 @@ def adjustIntensity(img, i, Capture):
     intersection1, intersection2 = find_ellipse_intersections(Center, AxisLength, strip_after_crop*(i+0.5))
     if intersection1 != -1 and intersection2 != -1:
         # print(intersection1, intersection2)
-        region_to_adjust_sum = np.sum(region_to_adjust[:, intersection1:intersection2], 1)
-        # print(region_to_adjust_sum.shape)
+        if i > 80 and i < 120:
+            region_to_adjust_sum = np.sum(region_to_adjust[:, intersection1:1800], 1) + np.sum(region_to_adjust[:, 2500:intersection2], 1)
+        else:
+            region_to_adjust_sum = np.sum(region_to_adjust[:, intersection1:intersection2], 1)
         region_to_process_max = np.max(region_to_adjust_sum)
         # print(region_to_process_max)
         factor = np.divide(region_to_process_max, region_to_adjust_sum)
