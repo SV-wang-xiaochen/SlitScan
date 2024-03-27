@@ -99,13 +99,13 @@ class Capture_General:
     BlockArray_frames = [block_frames_0, block_frames_0+block_frames_1, block_frames_0+block_frames_1+block_frames_2,
                          block_frames_0+block_frames_1+block_frames_2+block_frames_3]
     BlockArray_crops_top_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_top_pixels'))-crop_skip,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_top_pixels'))-crop_skip,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_top_pixels'))-crop_skip,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_top_pixels'))-crop_skip]
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_top_pixels'))-crop_skip+3,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_top_pixels'))-crop_skip-1,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_top_pixels'))-crop_skip-10]
     BlockArray_crops_bottom_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_bottom_pixels'))-crop_skip,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_bottom_pixels'))-crop_skip,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_bottom_pixels'))-crop_skip,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_bottom_pixels'))-crop_skip]
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_bottom_pixels'))-crop_skip-3,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_bottom_pixels'))-crop_skip+1,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_bottom_pixels'))-crop_skip+10]
 class Capture_R:
     ScansPerFrame = Capture_General.ScansPerFrame
     Strip_height = Capture_General.Strip_height
