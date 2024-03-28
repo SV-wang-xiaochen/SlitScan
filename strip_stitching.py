@@ -8,10 +8,12 @@ import math
 
 # Define the center and axes length of the ellipse
 Center = (2250, 2350)
-AxisLength = (2200, 2200)
+AxisLength = (2500, 2200)
 valid_height = 70
-blend_pixel = 11
-skip = 2
+blend_pixel = 10
+
+# adjut crop_skip in Capture_General when setting skip>1
+skip = 1
 strip_after_crop = 24 * skip
 crop_skip = (skip-1)*12
 def find_ellipse_intersections(center, axes_length, line_x):
@@ -99,13 +101,21 @@ class Capture_General:
     BlockArray_frames = [block_frames_0, block_frames_0+block_frames_1, block_frames_0+block_frames_1+block_frames_2,
                          block_frames_0+block_frames_1+block_frames_2+block_frames_3]
     BlockArray_crops_top_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_top_pixels'))-crop_skip,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_top_pixels'))-crop_skip+3,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_top_pixels'))-crop_skip-1,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_top_pixels'))-crop_skip-10]
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_top_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_top_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_top_pixels'))-crop_skip]
     BlockArray_crops_bottom_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_bottom_pixels'))-crop_skip,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_bottom_pixels'))-crop_skip-3,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_bottom_pixels'))-crop_skip+1,
-                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_bottom_pixels'))-crop_skip+10]
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_bottom_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_bottom_pixels'))-crop_skip,
+                                   int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_bottom_pixels'))-crop_skip]
+    # BlockArray_crops_top_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_top_pixels'))-crop_skip,
+    #                                int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_top_pixels'))-crop_skip+3,
+    #                                int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_top_pixels'))-crop_skip-1,
+    #                                int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_top_pixels'))-crop_skip-10]
+    # BlockArray_crops_bottom_pixels = [int(config.get('Hardware.Camera', 'Capture.BlockArray_0_crops_bottom_pixels'))-crop_skip,
+    #                                int(config.get('Hardware.Camera', 'Capture.BlockArray_1_crops_bottom_pixels'))-crop_skip-3,
+    #                                int(config.get('Hardware.Camera', 'Capture.BlockArray_2_crops_bottom_pixels'))-crop_skip+1,
+    #                                int(config.get('Hardware.Camera', 'Capture.BlockArray_3_crops_bottom_pixels'))-crop_skip+10]
 class Capture_R:
     ScansPerFrame = Capture_General.ScansPerFrame
     Strip_height = Capture_General.Strip_height
@@ -173,8 +183,8 @@ def imgBlend(img1, img2, i, Capture, overlap_top, overlap_bottom):
     overlap_region1 = img1[row1 - overlap_top - overlap_bottom:row1, :]
     # overlap_label1 = label_matrix[row1 - overlap_top - overlap_bottom:row1, :]
     overlap_region2 = img2[:(overlap_top+overlap_bottom), :]
-    cv2.imwrite(f'./curve/curve-{i}-up.png', overlap_region1[:, 1000:1500])
-    cv2.imwrite(f'./curve/curve-{i}-down.png', overlap_region2[:, 1000:1500])
+    cv2.imwrite(f'./curve/curve-{i}-up.png', overlap_region1)
+    cv2.imwrite(f'./curve/curve-{i}-down.png', overlap_region2)
 
     # curve_list = maxAccumulatedIntenstyCurveIndex(overlap_region1, overlap_region2)
     # print(curve_list)
@@ -195,7 +205,7 @@ def imgBlend(img1, img2, i, Capture, overlap_top, overlap_bottom):
     # img_new[row1 - overlap_top - overlap_bottom:row1, :] = np.maximum(overlap_region1, overlap_region2)
     # label_new[row1 - overlap_top - overlap_bottom:row1, :] = np.where(overlap_region1 >= overlap_region2, overlap_label1, i)
 
-    cv2.imwrite(f'./curve/curve-{i}-up-down-merged-max.png', img_new[row1 - overlap_top - overlap_bottom:row1, :][:, 1000:1500])
+    cv2.imwrite(f'./curve/curve-{i}-up-down-merged-max.png', img_new[row1 - overlap_top - overlap_bottom:row1, :])
 
     img_new[row1:, :] = img2[(overlap_top+overlap_bottom):, :]
     # label_new[row1:, :] = i
@@ -338,7 +348,7 @@ end_length = 200
 
 CONCAT_ONLY = False
 # R_blend = rgbChannelBlend(R_list, start_length, end_length, Capture_R, CONCAT_ONLY)
-# cv2.imwrite(f'./R.png', cv2.flip(R_blend, 0))
+# cv2.imwrite(f'./R.png', R_blend)
 G_blend = rgbChannelBlend(G_list, start_length, end_length, Capture_G, CONCAT_ONLY)
 # cv2.imwrite(f'./G.png', G_blend)
 # B_blend = rgbChannelBlend(B_list, start_length, end_length, Capture_B, CONCAT_ONLY)
