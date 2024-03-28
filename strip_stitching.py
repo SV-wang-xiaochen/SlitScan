@@ -1,3 +1,4 @@
+# only works when stitching consecutive strips
 import os
 import glob
 import cv2
@@ -38,7 +39,8 @@ def adjustIntensity(img, i, Capture):
     region_to_adjust = img[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)]
     # print(region_to_adjust.shape)
     # adjust intensity Y
-    intersection1, intersection2 = find_ellipse_intersections(Center, AxisLength, strip_after_crop*(i+0.5))
+    intersection1, intersection2 = find_ellipse_intersections(Center, AxisLength, strip_after_crop*(i/skip+0.5))
+    print(intersection1, intersection2)
     if intersection1 != -1 and intersection2 != -1:
         # print(intersection1, intersection2)
         region_to_adjust_sum = np.sum(region_to_adjust[:, intersection1:intersection2], 1)
@@ -59,8 +61,8 @@ def adjustIntensity(img, i, Capture):
     # second round
     region_to_adjust = img_adjusted[int((Capture.Strip_height-valid_height)/2):int((Capture.Strip_height+valid_height)/2)]
     if intersection1 != -1 and intersection2 != -1:
-        number_of_window = 10
-        number_of_overlap_window = 3
+        number_of_window = 100
+        number_of_overlap_window = 1
         window_width = int((intersection2 - intersection1)/number_of_window)
         print(window_width)
         for window_index in range(int(number_of_window/2), number_of_window-number_of_overlap_window):
@@ -88,7 +90,7 @@ def adjustIntensity(img, i, Capture):
 
     return img_adjusted
 
-INTERACTIVE_INPUT = True
+INTERACTIVE_INPUT = False
 mode = int(input('采集的strip是否上下颠倒:1：是 2：否:')) if INTERACTIVE_INPUT else 2
 
 # Use glob to get a list of all first-level subfolders
